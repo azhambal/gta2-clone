@@ -15,6 +15,7 @@ import { createVehiclePhysicsSystem } from './ecs/systems/VehiclePhysicsSystem.j
 import { createVehicleInteractionSystem } from './ecs/systems/VehicleInteractionSystem.js';
 import { createSurfaceEffectSystem } from './ecs/systems/SurfaceEffectSystem.js';
 import { VehicleType } from './data/VehicleDefinitions.js';
+import { audioManager, preloadSounds } from './audio/index.js';
 
 /**
  * Главный класс игры
@@ -100,6 +101,11 @@ export class Game {
       gravity: { x: 0, y: 0 }, // Вид сверху
     });
     Debug.log('Game', 'Physics initialized');
+
+    // Инициализация аудио
+    preloadSounds(audioManager);
+    this.setupAudioEvents();
+    Debug.log('Game', 'Audio initialized');
 
     // Инициализация ECS
     this.systemManager = new SystemManager();
@@ -239,6 +245,76 @@ export class Game {
   }
 
   /**
+   * Настройка аудио событий
+   */
+  private setupAudioEvents(): void {
+    // Звук при входе в машину
+    eventBus.on('vehicle:entered', ({ vehicle, player }) => {
+      audioManager.playSound('engine_idle');
+      Debug.log('Audio', `Vehicle entered: ${vehicle} by ${player}`);
+    });
+
+    // Звук при выходе из машины
+    eventBus.on('vehicle:exited', ({ vehicle, player }) => {
+      audioManager.stopSound('engine_idle');
+      Debug.log('Audio', `Vehicle exited: ${vehicle} by ${player}`);
+    });
+
+    // Обработка коллизий для звуков столкновений
+    eventBus.on('physics:collisionStart', ({ entityA, entityB, pair }) => {
+      const world = ecsWorld.getWorld();
+      const { Vehicle } = world.components;
+
+      // Проверяем, что обе сущности - машины
+      const isVehicleA = Vehicle.type[entityA] !== undefined;
+      const isVehicleB = Vehicle.type[entityB] !== undefined;
+
+      if (isVehicleA && isVehicleB) {
+        // Вычисляем импульс столкновения через относительную скорость
+        const { bodyA, bodyB } = pair;
+        const relativeVelocity = Math.sqrt(
+          Math.pow(bodyA.velocity.x - bodyB.velocity.x, 2) +
+          Math.pow(bodyA.velocity.y - bodyB.velocity.y, 2)
+        );
+        const threshold = 10; // Порог для проигрывания звука
+
+        if (relativeVelocity > threshold) {
+          const { Position } = world.components;
+          const ax = Position.x[entityA] ?? 0;
+          const ay = Position.y[entityA] ?? 0;
+          const cameraPos = this.camera.getPosition();
+
+          // Volume зависит от силы удара
+          const volume = Math.min(1, relativeVelocity / 100);
+          audioManager.playSoundAt('car_crash', ax, ay, cameraPos.x, cameraPos.y, { volume });
+          Debug.log('Audio', `Vehicle crash: ${entityA} <-> ${entityB}, velocity: ${relativeVelocity.toFixed(2)}`);
+        }
+      }
+    });
+
+    // Звук при нажатии UI кнопок
+    eventBus.on('ui:click', () => {
+      audioManager.playSound('ui_click');
+    });
+
+    // Звук при изменении настроек громкости
+    eventBus.on('audio:volumeChanged', ({ category, volume }) => {
+      switch (category) {
+        case 'master':
+          audioManager.setMasterVolume(volume);
+          break;
+        case 'sfx':
+          audioManager.setSFXVolume(volume);
+          break;
+        case 'music':
+          audioManager.setMusicVolume(volume);
+          break;
+      }
+      Debug.log('Audio', `Volume changed: ${category} = ${volume.toFixed(2)}`);
+    });
+  }
+
+  /**
    * Получить рендерер
    */
   public getRenderer(): Renderer {
@@ -264,5 +340,12 @@ export class Game {
    */
   public getConfig(): GameConfig {
     return this.config;
+  }
+
+  /**
+   * Получить аудио менеджер
+   */
+  public getAudioManager() {
+    return audioManager;
   }
 }
