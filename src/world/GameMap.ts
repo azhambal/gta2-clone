@@ -160,4 +160,56 @@ export class GameMap {
       y: blockY * BLOCK_SIZE,
     };
   }
+
+  /**
+   * Получить тип поверхности в точке (мировые координаты в пикселях)
+   * Возвращает тип поверхности блока на уровне земли
+   */
+  public getSurfaceAt(worldX: number, worldY: number): number {
+    const blockPos = this.worldToBlock(worldX, worldY);
+    const groundZ = this.getGroundLevel(blockPos.x, blockPos.y);
+    const block = this.getBlock(blockPos.x, blockPos.y, groundZ);
+    return this.getSurfaceFromBlock(block);
+  }
+
+  /**
+   * Получить тип поверхности из типа блока
+   * Соответствие BlockType -> SurfaceType
+   */
+  private getSurfaceFromBlock(block: BlockData): number {
+    const type = block.getType();
+    const { SurfaceType: BlockSurfaceType } = require('./BlockTypes.js');
+
+    // Маппинг BlockType на SurfaceType
+    // Значения SurfaceType из BlockTypes: NONE=0, ROAD=1, GRASS=2, DIRT=3, ICE=4, OIL=5, WATER=6, SAND=7, MUD=8
+    switch (type) {
+      case 0: // AIR
+        return BlockSurfaceType.NONE;
+      case 10: // ROAD
+      case 11: // ROAD_LINE_H
+      case 12: // ROAD_LINE_V
+      case 13: // CROSSWALK
+        return BlockSurfaceType.ROAD;
+      case 14: // SIDEWALK
+        return BlockSurfaceType.ROAD; // Тротуар ведёт себя как дорога
+      case 20: // GRASS
+        return BlockSurfaceType.GRASS;
+      case 21: // DIRT
+        return BlockSurfaceType.DIRT;
+      case 22: // SAND
+        return BlockSurfaceType.SAND;
+      case 40: // WATER
+      case 41: // DEEP_WATER
+        return BlockSurfaceType.WATER;
+      case 60: // OIL
+        return BlockSurfaceType.OIL;
+      case 61: // ICE
+        return BlockSurfaceType.ICE;
+      case 62: // MUD
+        return BlockSurfaceType.MUD;
+      default:
+        // По умолчанию - твёрдая поверхность как дорога
+        return BlockSurfaceType.ROAD;
+    }
+  }
 }

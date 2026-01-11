@@ -3,3 +3,4 @@ export { createAnimationSystem, animationSystem } from './AnimationSystem.js';
 export { createPlayerInputSystem } from './PlayerInputSystem.js';
 export { createMapCollisionSystem, canMoveTo } from './MapCollisionSystem.js';
 export { createPhysicsSyncSystem } from './PhysicsSyncSystem.js';
+export { createVehiclePhysicsSystem } from './VehiclePhysicsSystem.js';
