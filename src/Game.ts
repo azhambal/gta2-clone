@@ -1,14 +1,15 @@
-import { Engine } from './core/Engine';
-import { eventBus } from './core/EventBus';
-import { Debug } from './utils/Debug';
-import { GameConfig } from './core/Types';
+import { Engine } from './core/Engine.js';
+import { eventBus } from './core/EventBus.js';
+import { Debug } from './utils/Debug.js';
+import type { GameConfig } from './core/Types.js';
+import { Renderer } from './rendering/Renderer.js';
 
 /**
  * Главный класс игры
- * Координирует все подсистемы
  */
 export class Game {
   private engine: Engine;
+  private renderer: Renderer;
   private config: GameConfig;
 
   constructor(config: Partial<GameConfig> = {}) {
@@ -20,6 +21,7 @@ export class Game {
     };
 
     this.engine = new Engine();
+    this.renderer = new Renderer();
 
     // Регистрация callbacks
     this.engine.onUpdate(this.update.bind(this));
@@ -36,7 +38,18 @@ export class Game {
     Debug.init();
     Debug.log('Game', 'Initializing...');
 
-    // Инициализация подсистем будет добавлена в следующих шагах
+    // Получение контейнера
+    const container = document.getElementById('game-container');
+    if (!container) {
+      throw new Error('Game container not found');
+    }
+
+    // Инициализация рендерера
+    await this.renderer.init(this.config, container);
+    Debug.log('Game', 'Renderer initialized');
+
+    // Обработка ресайза
+    window.addEventListener('resize', this.handleResize.bind(this));
 
     Debug.log('Game', 'Initialization complete');
   }
@@ -63,7 +76,6 @@ export class Game {
    * Обновление каждый кадр
    */
   private update(_dt: number): void {
-    // Input, камера и прочее
     Debug.updateFps(this.engine.getFps());
   }
 
@@ -71,14 +83,30 @@ export class Game {
    * Фиксированное обновление (физика)
    */
   private fixedUpdate(_dt: number): void {
-    // Физика, ECS системы
+    // Физика и ECS системы
   }
 
   /**
    * Рендеринг
    */
   private render(_interpolation: number): void {
-    // Отрисовка будет добавлена позже
+    this.renderer.beginFrame();
+    // Рендеринг объектов будет здесь
+    this.renderer.endFrame();
+  }
+
+  /**
+   * Обработка изменения размера окна
+   */
+  private handleResize(): void {
+    // В будущем можно адаптировать размер
+  }
+
+  /**
+   * Получить рендерер
+   */
+  public getRenderer(): Renderer {
+    return this.renderer;
   }
 
   /**
