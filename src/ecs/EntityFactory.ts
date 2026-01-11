@@ -1,5 +1,6 @@
 import { addEntity, addComponent } from 'bitecs';
 import type { GameWorld } from './World.js';
+import type { PhysicsManager } from '../physics/PhysicsManager.js';
 import {
   Position,
   Velocity,
@@ -10,7 +11,11 @@ import {
   PlayerControlled,
   Pedestrian,
   Vehicle,
+  VehiclePhysics,
+  VehicleOccupants,
+  RigidBody,
 } from './components/index.js';
+import { getVehicleDefinition, VehicleType } from '../data/VehicleDefinitions.js';
 
 /**
  * Фабрика для создания сущностей
@@ -130,34 +135,104 @@ export class EntityFactory {
     world: GameWorld,
     x: number,
     y: number,
-    type: number = 0
+    type: VehicleType = VehicleType.CAR_SEDAN,
+    physicsManager?: PhysicsManager
   ): number {
-    const eid = this.createBasicEntity(world, x, y, 0);
-    const { Velocity: _Vel, SpriteComponent: Sprite, Collider: Col, Health: HP, Vehicle: Veh } =
-      world.components;
+    const def = getVehicleDefinition(type);
+    const eid = addEntity(world);
+    const {
+      Position: Pos,
+      Rotation: Rot,
+      Velocity: Vel,
+      SpriteComponent: Sprite,
+      Collider: Col,
+      Health: HP,
+      Vehicle: Veh,
+      VehiclePhysics: VPhys,
+      VehicleOccupants: VOcc,
+    } = world.components;
 
+    // Позиция
+    addComponent(world, eid, Position);
+    Pos.x[eid] = x;
+    Pos.y[eid] = y;
+    Pos.z[eid] = 0;
+
+    // Поворот
+    addComponent(world, eid, Rotation);
+    Rot.angle[eid] = 0;
+
+    // Скорость
     addComponent(world, eid, Velocity);
+    Vel.x[eid] = 0;
+    Vel.y[eid] = 0;
 
+    // Спрайт
     addComponent(world, eid, SpriteComponent);
-    Sprite.width[eid] = 64;
-    Sprite.height[eid] = 44;
+    Sprite.textureId[eid] = 100 + type; // Vehicle textures start at 100
+    Sprite.width[eid] = def.spriteWidth;
+    Sprite.height[eid] = def.spriteHeight;
     Sprite.anchorX[eid] = 0.5;
     Sprite.anchorY[eid] = 0.5;
     Sprite.visible[eid] = 1;
 
+    // Коллайдер
     addComponent(world, eid, Collider);
     Col.type[eid] = 1; // Box
-    Col.width[eid] = 56;
-    Col.height[eid] = 28;
+    Col.width[eid] = def.colliderWidth;
+    Col.height[eid] = def.colliderHeight;
 
+    // Здоровье
     addComponent(world, eid, Health);
-    HP.current[eid] = 100;
-    HP.max[eid] = 100;
+    HP.current[eid] = def.health;
+    HP.max[eid] = def.health;
 
+    // Компонент транспорта
     addComponent(world, eid, Vehicle);
     Veh.type[eid] = type;
     Veh.damage[eid] = 0;
     Veh.fuel[eid] = 100;
+
+    // Физика транспорта
+    addComponent(world, eid, VehiclePhysics);
+    VPhys.mass[eid] = def.mass;
+    VPhys.maxSpeed[eid] = def.maxSpeed;
+    VPhys.acceleration[eid] = def.acceleration;
+    VPhys.braking[eid] = def.braking;
+    VPhys.handling[eid] = def.handling;
+    VPhys.grip[eid] = def.grip;
+    VPhys.throttle[eid] = 0;
+    VPhys.steering[eid] = 0;
+    VPhys.speed[eid] = 0;
+    VPhys.angularVelocity[eid] = 0;
+    VPhys.drifting[eid] = 0;
+
+    // Места
+    addComponent(world, eid, VehicleOccupants);
+    VOcc.driver[eid] = 0;
+    VOcc.passenger1[eid] = 0;
+    VOcc.passenger2[eid] = 0;
+    VOcc.passenger3[eid] = 0;
+    VOcc.maxSeats[eid] = def.seats;
+
+    // Физическое тело (если передан менеджер)
+    if (physicsManager) {
+      addComponent(world, eid, RigidBody);
+      const body = physicsManager.createRectBody(
+        eid,
+        x,
+        y,
+        def.colliderWidth,
+        def.colliderHeight,
+        {
+          friction: 0.1,
+          frictionAir: 0.02,
+          restitution: 0.3,
+          mass: def.mass / 1000, // Matter.js использует меньшие значения
+        }
+      );
+      RigidBody.bodyId[eid] = body.id;
+    }
 
     return eid;
   }

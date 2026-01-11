@@ -17,6 +17,7 @@ import {
   Pedestrian,
   Driver,
   VehicleOccupants,
+  VehiclePhysics,
 } from './components/Transform.js';
 
 // Define the components object type for createWorld
@@ -36,6 +37,7 @@ interface GameWorldComponents {
   Pedestrian: typeof Pedestrian;
   Driver: typeof Driver;
   VehicleOccupants: typeof VehicleOccupants;
+  VehiclePhysics: typeof VehiclePhysics;
 }
 
 // Define our World type with components
@@ -65,6 +67,7 @@ export class ECSWorld {
         Pedestrian,
         Driver,
         VehicleOccupants,
+        VehiclePhysics,
       },
     }) as GameWorld;
   }

@@ -15,5 +15,6 @@ export {
   Pedestrian,
   Driver,
   VehicleOccupants,
+  VehiclePhysics,
   allComponents,
 } from './Transform.js';

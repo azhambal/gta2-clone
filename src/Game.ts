@@ -11,6 +11,7 @@ import { InputManager, GameAction } from './input/index.js';
 import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem, createMapCollisionSystem } from './ecs/index.js';
 import { PhysicsManager } from './physics/PhysicsManager.js';
 import { createPhysicsSyncSystem } from './ecs/systems/PhysicsSyncSystem.js';
+import { VehicleType } from './data/VehicleDefinitions.js';
 
 /**
  * Главный класс игры
@@ -111,6 +112,16 @@ export class Game {
     const world = ecsWorld.getWorld();
     this.playerEntity = EntityFactory.createPlayer(world, worldWidth / 2, worldHeight / 2);
     Debug.log('Game', `Player entity created: ${this.playerEntity}`);
+
+    // Создание тестовых машин разных типов
+    const vehicle1 = EntityFactory.createVehicle(world, worldWidth / 2 - 100, worldHeight / 2, VehicleType.CAR_SPORT, this.physicsManager);
+    const vehicle2 = EntityFactory.createVehicle(world, worldWidth / 2 + 100, worldHeight / 2, VehicleType.CAR_SEDAN, this.physicsManager);
+    const vehicle3 = EntityFactory.createVehicle(world, worldWidth / 2, worldHeight / 2 - 100, VehicleType.CAR_TAXI, this.physicsManager);
+    const vehicle4 = EntityFactory.createVehicle(world, worldWidth / 2, worldHeight / 2 + 100, VehicleType.TRUCK, this.physicsManager);
+    const vehicle5 = EntityFactory.createVehicle(world, worldWidth / 2 - 200, worldHeight / 2 - 100, VehicleType.BUS, this.physicsManager);
+    const vehicle6 = EntityFactory.createVehicle(world, worldWidth / 2 + 200, worldHeight / 2 - 100, VehicleType.MOTORCYCLE, this.physicsManager);
+    const vehicle7 = EntityFactory.createVehicle(world, worldWidth / 2 - 200, worldHeight / 2 + 100, VehicleType.TANK, this.physicsManager);
+    Debug.log('Game', `Test vehicles created: ${vehicle1}, ${vehicle2}, ${vehicle3}, ${vehicle4}, ${vehicle5}, ${vehicle6}, ${vehicle7}`);
 
     // Передача карты рендереру
     this.renderer.setMap(this.currentMap);

@@ -133,11 +133,40 @@ export const VehicleOccupants: {
   passenger1: number[];
   passenger2: number[];
   passenger3: number[];
+  maxSeats: number[];
 } = {
   driver: [],
   passenger1: [],
   passenger2: [],
   passenger3: [],
+  maxSeats: [],
+};
+
+// Vehicle physics component
+export const VehiclePhysics: {
+  mass: number[];
+  maxSpeed: number[];
+  acceleration: number[];
+  braking: number[];
+  handling: number[];
+  grip: number[];
+  throttle: number[];
+  steering: number[];
+  speed: number[];
+  angularVelocity: number[];
+  drifting: number[];
+} = {
+  mass: [],
+  maxSpeed: [],
+  acceleration: [],
+  braking: [],
+  handling: [],
+  grip: [],
+  throttle: [],
+  steering: [],
+  speed: [],
+  angularVelocity: [],
+  drifting: [],
 };
 
 // Export all components for createWorld
@@ -157,4 +186,5 @@ export const allComponents = {
   Pedestrian,
   Driver,
   VehicleOccupants,
+  VehiclePhysics,
 };

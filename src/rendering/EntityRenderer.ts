@@ -1,6 +1,7 @@
 import { Container, Graphics } from 'pixi.js';
 import { query } from 'bitecs';
 import { ecsWorld } from '../ecs/index.js';
+import { VehicleType } from '../data/VehicleDefinitions.js';
 
 /**
  * Цвета для разных типов сущностей (заглушки до появления спрайтов)
@@ -8,8 +9,18 @@ import { ecsWorld } from '../ecs/index.js';
 const ENTITY_COLORS = {
   player: 0x3366ff, // Синий для игрока
   pedestrian: 0x66ff66, // Зелёный для пешеходов
-  vehicle: 0xff6633, // Оранжевый для машин
-};
+  // Цвета для разных типов машин
+  vehicle: {
+    [VehicleType.CAR_SPORT]: 0xff3333,    // Красный спорткар
+    [VehicleType.CAR_SEDAN]: 0x3366ff,    // Синий седан
+    [VehicleType.CAR_TAXI]: 0xffff33,     // Жёлтое такси
+    [VehicleType.CAR_POLICE]: 0x3399ff,   // Голубая полицейская
+    [VehicleType.TRUCK]: 0x996633,        // Коричневый грузовик
+    [VehicleType.BUS]: 0x666666,          // Серый автобус
+    [VehicleType.MOTORCYCLE]: 0xff9933,   // Оранжевый мотоцикл
+    [VehicleType.TANK]: 0x4a5d23,         // Тёмно-зелёный танк
+  },
+} as const;
 
 /**
  * Рендерер для ECS сущностей
@@ -65,13 +76,18 @@ export class EntityRenderer {
 
       // Определяем тип сущности для цвета
       const isPlayer = PlayerControlled[eid] === 1;
-      const isVehicle = Vehicle.type[eid] !== undefined;
+      const vehicleType = Vehicle.type[eid];
 
-      const color = isPlayer
-        ? ENTITY_COLORS.player
-        : isVehicle
-          ? ENTITY_COLORS.vehicle
-          : ENTITY_COLORS.pedestrian;
+      let color: number;
+      if (isPlayer) {
+        color = ENTITY_COLORS.player;
+      } else if (vehicleType !== undefined && vehicleType >= 0) {
+        // Используем цвет для конкретного типа машины
+        const vehicleColors = ENTITY_COLORS.vehicle as Record<number, number>;
+        color = vehicleColors[vehicleType] ?? ENTITY_COLORS.vehicle[VehicleType.CAR_SEDAN];
+      } else {
+        color = ENTITY_COLORS.pedestrian;
+      }
 
       // Перерисовываем при необходимости
       this.drawEntitySprite(sprite, width, height, color);
