@@ -1,11 +1,22 @@
 import './style.css';
+import { Game } from './Game';
 
-const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = `
-  <div id="game-container">
-    <h1>GTA 2 Clone</h1>
-    <p>Инициализация...</p>
-  </div>
-`;
+async function main() {
+  // Очистка контейнера
+  const app = document.querySelector<HTMLDivElement>('#app')!;
+  app.innerHTML = '<div id="game-container"></div>';
 
-console.log('GTA 2 Clone - Project initialized');
+  // Создание и запуск игры
+  const game = new Game({
+    width: 1280,
+    height: 720,
+  });
+
+  await game.init();
+  game.start();
+
+  // Для отладки в консоли
+  (window as any).game = game;
+}
+
+main().catch(console.error);

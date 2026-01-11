@@ -1,2 +1,1 @@
-// Utils module exports
-export {};
+export { Debug } from './Debug';
