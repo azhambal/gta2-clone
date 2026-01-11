@@ -14,6 +14,8 @@ import {
   VehiclePhysics,
   VehicleOccupants,
   RigidBody,
+  PedestrianAI,
+  PedestrianState,
 } from './components/index.js';
 import { getVehicleDefinition, VehicleType } from '../data/VehicleDefinitions.js';
 
@@ -103,7 +105,7 @@ export class EntityFactory {
     type: number = 0
   ): number {
     const eid = this.createBasicEntity(world, x, y, 0);
-    const { Velocity: _Vel, SpriteComponent: Sprite, Collider: Col, Health: HP, Pedestrian: Ped } =
+    const { Velocity: _Vel, SpriteComponent: Sprite, Collider: Col, Health: HP, Pedestrian: Ped, PedestrianAI: PedAI } =
       world.components;
 
     addComponent(world, eid, Velocity);
@@ -124,6 +126,21 @@ export class EntityFactory {
 
     addComponent(world, eid, Pedestrian);
     Ped.type[eid] = type;
+
+    // Добавляем AI для NPC пешеходов
+    addComponent(world, eid, PedestrianAI);
+    PedAI.state[eid] = PedestrianState.IDLE;
+    PedAI.previousState[eid] = PedestrianState.IDLE;
+    PedAI.targetX[eid] = 0;
+    PedAI.targetY[eid] = 0;
+    PedAI.hasTarget[eid] = 0;
+    PedAI.walkSpeed[eid] = 80 + Math.random() * 40; // Случайная скорость ходьбы
+    PedAI.runSpeed[eid] = 180 + Math.random() * 60; // Случайная скорость бега
+    PedAI.fearLevel[eid] = 0;
+    PedAI.sightRange[eid] = 300;
+    PedAI.stateTimer[eid] = Math.random() * 3;
+    PedAI.thinkTimer[eid] = 0;
+    PedAI.pathCooldown[eid] = 0;
 
     return eid;
   }

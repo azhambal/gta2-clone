@@ -169,6 +169,47 @@ export const VehiclePhysics: {
   drifting: [],
 };
 
+// AI components
+export const PedestrianAI: {
+  state: number[];
+  previousState: number[];
+  targetX: number[];
+  targetY: number[];
+  hasTarget: number[];
+  walkSpeed: number[];
+  runSpeed: number[];
+  fearLevel: number[];
+  sightRange: number[];
+  stateTimer: number[];
+  thinkTimer: number[];
+  pathCooldown: number[];
+} = {
+  state: [],
+  previousState: [],
+  targetX: [],
+  targetY: [],
+  hasTarget: [],
+  walkSpeed: [],
+  runSpeed: [],
+  fearLevel: [],
+  sightRange: [],
+  stateTimer: [],
+  thinkTimer: [],
+  pathCooldown: [],
+};
+
+/**
+ * Состояния AI пешехода (FSM)
+ */
+export enum PedestrianState {
+  IDLE = 0,
+  WALKING = 1,
+  RUNNING = 2,
+  FLEEING = 3,
+  ENTERING_VEHICLE = 4,
+  DEAD = 5,
+}
+
 // Export all components for createWorld
 export const allComponents = {
   Position,
@@ -187,4 +228,5 @@ export const allComponents = {
   Driver,
   VehicleOccupants,
   VehiclePhysics,
+  PedestrianAI,
 };

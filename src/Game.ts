@@ -16,6 +16,7 @@ import { createVehicleInteractionSystem } from './ecs/systems/VehicleInteraction
 import { createSurfaceEffectSystem } from './ecs/systems/SurfaceEffectSystem.js';
 import { VehicleType } from './data/VehicleDefinitions.js';
 import { audioManager, preloadSounds } from './audio/index.js';
+import { createPedestrianAISystem } from './ai/index.js';
 
 /**
  * Главный класс игры
@@ -116,6 +117,8 @@ export class Game {
     this.systemManager.register('vehiclePhysics', createVehiclePhysicsSystem(this.physicsManager, this.currentMap), 5);
     // SurfaceEffectSystem для спавна частиц поверхностей (после vehiclePhysics для получения скорости)
     this.systemManager.register('surfaceEffects', createSurfaceEffectSystem(this.currentMap), 6);
+    // PedestrianAISystem для управления NPC пешеходами
+    this.systemManager.register('pedestrianAI', createPedestrianAISystem(this.currentMap), 7);
     this.systemManager.register('movement', movementSystem, 10);
     // Регистрация системы коллизий после movement
     this.systemManager.register('mapCollision', createMapCollisionSystem(this.currentMap), 15);
@@ -137,6 +140,20 @@ export class Game {
     const vehicle6 = EntityFactory.createVehicle(world, worldWidth / 2 + 200, worldHeight / 2 - 100, VehicleType.MOTORCYCLE, this.physicsManager);
     const vehicle7 = EntityFactory.createVehicle(world, worldWidth / 2 - 200, worldHeight / 2 + 100, VehicleType.TANK, this.physicsManager);
     Debug.log('Game', `Test vehicles created: ${vehicle1}, ${vehicle2}, ${vehicle3}, ${vehicle4}, ${vehicle5}, ${vehicle6}, ${vehicle7}`);
+
+    // Создание тестовых NPC пешеходов
+    const pedestrianCount = 20;
+    const pedestrians: number[] = [];
+    for (let i = 0; i < pedestrianCount; i++) {
+      const angle = (i / pedestrianCount) * Math.PI * 2;
+      const radius = 200 + Math.random() * 300;
+      const pedX = worldWidth / 2 + Math.cos(angle) * radius;
+      const pedY = worldHeight / 2 + Math.sin(angle) * radius;
+      const pedType = Math.floor(Math.random() * 3); // 0-2 разные типы пешеходов
+      const ped = EntityFactory.createPedestrian(world, pedX, pedY, pedType);
+      pedestrians.push(ped);
+    }
+    Debug.log('Game', `Test pedestrians created: ${pedestrians.length} NPCs`);
 
     // Передача карты рендереру
     this.renderer.setMap(this.currentMap);
