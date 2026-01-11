@@ -210,6 +210,49 @@ export enum PedestrianState {
   DEAD = 5,
 }
 
+// Traffic AI component
+export const TrafficAI: {
+  state: number[];
+  previousState: number[];
+  // Route navigation
+  currentWaypointId: number[];
+  routeId: number[];
+  // Parameters
+  desiredSpeed: number[];
+  aggressiveness: number[];
+  patience: number[];
+  // Perception
+  distanceToNext: number[];
+  hasObstacle: number[];
+  // State timers
+  stateTimer: number[];
+  waitTimer: number[];
+} = {
+  state: [],
+  previousState: [],
+  currentWaypointId: [],
+  routeId: [],
+  desiredSpeed: [],
+  aggressiveness: [],
+  patience: [],
+  distanceToNext: [],
+  hasObstacle: [],
+  stateTimer: [],
+  waitTimer: [],
+};
+
+/**
+ * Состояния AI трафика (FSM)
+ */
+export enum TrafficState {
+  DRIVING = 0,
+  STOPPED = 1,
+  WAITING = 2,
+  TURNING = 3,
+  CRASHED = 4,
+  FLEEING = 5,
+}
+
 // Export all components for createWorld
 export const allComponents = {
   Position,
@@ -229,4 +272,5 @@ export const allComponents = {
   VehicleOccupants,
   VehiclePhysics,
   PedestrianAI,
+  TrafficAI,
 };

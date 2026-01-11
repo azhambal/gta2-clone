@@ -18,5 +18,7 @@ export {
   VehiclePhysics,
   PedestrianAI,
   PedestrianState,
+  TrafficAI,
+  TrafficState,
   allComponents,
 } from './Transform.js';
