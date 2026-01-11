@@ -12,6 +12,7 @@ import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem
 import { PhysicsManager } from './physics/PhysicsManager.js';
 import { createPhysicsSyncSystem } from './ecs/systems/PhysicsSyncSystem.js';
 import { createVehiclePhysicsSystem } from './ecs/systems/VehiclePhysicsSystem.js';
+import { createVehicleInteractionSystem } from './ecs/systems/VehicleInteractionSystem.js';
 import { VehicleType } from './data/VehicleDefinitions.js';
 
 /**
@@ -101,6 +102,8 @@ export class Game {
 
     // Инициализация ECS
     this.systemManager = new SystemManager();
+    // VehicleInteractionSystem должен идти ПЕРЕД playerInput (чтобы обработать вход/выход первым)
+    this.systemManager.register('vehicleInteraction', createVehicleInteractionSystem(this.inputManager), -5);
     this.systemManager.register('playerInput', createPlayerInputSystem(this.inputManager), 0);
     // VehiclePhysicsSystem должен идти после playerInput (для получения ввода) и перед movement/mapCollision
     this.systemManager.register('vehiclePhysics', createVehiclePhysicsSystem(this.physicsManager, this.currentMap), 5);

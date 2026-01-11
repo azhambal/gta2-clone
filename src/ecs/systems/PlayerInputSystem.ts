@@ -25,6 +25,10 @@ export const createPlayerInputSystem = (inputManager: InputManager) => {
         const vPhys = VehiclePhysics;
         const vOcc = VehicleOccupants;
 
+        // Синхронизируем позицию игрока с машиной для камеры
+        Position.x[eid] = Position.x[vehicleEntity];
+        Position.y[eid] = Position.y[vehicleEntity];
+
         // Проверяем, что игрок действительно водитель этой машины
         if (vOcc.driver[vehicleEntity] === eid) {
           // Управление газом/тормозом
