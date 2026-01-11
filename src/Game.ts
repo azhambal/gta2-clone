@@ -8,7 +8,7 @@ import { Camera } from './rendering/Camera.js';
 import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
 import { InputManager, GameAction } from './input/index.js';
-import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem } from './ecs/index.js';
+import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem } from './ecs/index.js';
 
 /**
  * Главный класс игры
@@ -90,8 +90,9 @@ export class Game {
 
     // Инициализация ECS
     this.systemManager = new SystemManager();
-    this.systemManager.register('movement', movementSystem, 0);
-    this.systemManager.register('animation', animationSystem, 1);
+    this.systemManager.register('playerInput', createPlayerInputSystem(this.inputManager), 0);
+    this.systemManager.register('movement', movementSystem, 1);
+    this.systemManager.register('animation', animationSystem, 2);
 
     // Создание тестового игрока
     const world = ecsWorld.getWorld();
@@ -131,12 +132,14 @@ export class Game {
   private update(_dt: number): void {
     Debug.updateFps(this.engine.getFps());
 
-    // Управление камерой через Actions
-    const cameraSpeed = 5;
-    const movement = this.inputManager.getMovementVector();
+    // Камера следует за игроком
+    const world = ecsWorld.getWorld();
+    const { Position } = world.components;
 
-    if (movement.x !== 0 || movement.y !== 0) {
-      this.camera.move(movement.x * cameraSpeed, movement.y * cameraSpeed);
+    if (this.playerEntity && Position.x[this.playerEntity] !== undefined) {
+      const playerX = Position.x[this.playerEntity];
+      const playerY = Position.y[this.playerEntity];
+      this.camera.follow({ x: playerX, y: playerY });
     }
 
     // Зум через Actions

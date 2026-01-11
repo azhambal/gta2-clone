@@ -1,6 +1,7 @@
 import { Application, Container } from 'pixi.js';
 import type { GameConfig } from '../core/Types.js';
 import { MapRenderer } from './MapRenderer.js';
+import { EntityRenderer } from './EntityRenderer.js';
 import { GameMap } from '../world/GameMap.js';
 
 /**
@@ -13,6 +14,7 @@ export class Renderer {
 
   // Рендереры
   private mapRenderer: MapRenderer | null = null;
+  private entityRenderer: EntityRenderer | null = null;
 
   constructor() {
     this.app = new Application();
@@ -43,6 +45,9 @@ export class Renderer {
 
     // Инициализация MapRenderer
     this.mapRenderer = new MapRenderer(this.gameContainer);
+
+    // Инициализация EntityRenderer
+    this.entityRenderer = new EntityRenderer(this.gameContainer);
   }
 
   /**
@@ -57,6 +62,7 @@ export class Renderer {
    */
   public update(): void {
     this.mapRenderer?.update();
+    this.entityRenderer?.update();
   }
 
   /**
@@ -102,6 +108,13 @@ export class Renderer {
   }
 
   /**
+   * Получить EntityRenderer
+   */
+  public getEntityRenderer(): EntityRenderer | null {
+    return this.entityRenderer;
+  }
+
+  /**
    * Получить размеры экрана
    */
   public getScreenSize(): { width: number; height: number } {
@@ -123,6 +136,7 @@ export class Renderer {
    */
   public destroy(): void {
     this.mapRenderer?.destroy();
+    this.entityRenderer?.destroy();
     this.app.destroy(true, { children: true, texture: true });
   }
 }
