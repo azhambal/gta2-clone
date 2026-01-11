@@ -1,10 +1,13 @@
 import { Engine } from './core/Engine.js';
 import { eventBus } from './core/EventBus.js';
 import { Debug } from './utils/Debug.js';
+import { GAME_CONSTANTS } from './core/Types.js';
 import type { GameConfig } from './core/Types.js';
 import { Renderer } from './rendering/Renderer.js';
+import { Camera } from './rendering/Camera.js';
 import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
+import { InputManager } from './input/InputManager.js';
 
 /**
  * Главный класс игры
@@ -14,6 +17,8 @@ export class Game {
   private renderer: Renderer;
   private config: GameConfig;
   private currentMap: GameMap | null = null;
+  private camera!: Camera;
+  private inputManager!: InputManager;
 
   constructor(config: Partial<GameConfig> = {}) {
     this.config = {
@@ -55,6 +60,31 @@ export class Game {
     this.currentMap = MapGenerator.createTestMap(4, 4);
     Debug.log('Game', `Map created: ${this.currentMap.widthInBlocks}x${this.currentMap.heightInBlocks} blocks`);
 
+    // Инициализация камеры
+    const worldWidth = this.currentMap.widthInBlocks * GAME_CONSTANTS.BLOCK_SIZE;
+    const worldHeight = this.currentMap.heightInBlocks * GAME_CONSTANTS.BLOCK_SIZE;
+
+    this.camera = new Camera({
+      screenWidth: this.config.width,
+      screenHeight: this.config.height,
+      worldBounds: {
+        x: 0,
+        y: 0,
+        width: worldWidth,
+        height: worldHeight,
+      },
+      smoothing: 0.1,
+    });
+
+    // Привязка камеры к контейнеру
+    this.camera.attachTo(this.renderer.getGameContainer());
+
+    // Начальная позиция камеры (центр карты)
+    this.camera.setPosition(worldWidth / 2, worldHeight / 2);
+
+    // Инициализация ввода
+    this.inputManager = new InputManager();
+
     // Передача карты рендереру
     this.renderer.setMap(this.currentMap);
 
@@ -87,7 +117,35 @@ export class Game {
    */
   private update(_dt: number): void {
     Debug.updateFps(this.engine.getFps());
+
+    // Управление камерой
+    const cameraSpeed = 5;
+    const movement = this.inputManager.getMovementVector();
+
+    if (movement.x !== 0 || movement.y !== 0) {
+      this.camera.move(movement.x * cameraSpeed, movement.y * cameraSpeed);
+    }
+
+    // Зум (Q/E или +/-)
+    if (this.inputManager.isKeyDown('q') || this.inputManager.isKeyDown('-')) {
+      this.camera.zoomTo(this.camera.getZoom() - 0.02);
+    }
+    if (this.inputManager.isKeyDown('e') || this.inputManager.isKeyDown('=')) {
+      this.camera.zoomTo(this.camera.getZoom() + 0.02);
+    }
+
+    // Обновление камеры
+    this.camera.update(16.67); // dt для камеры
+
+    // Обновление viewport для culling
+    const viewport = this.camera.getViewport();
+    this.renderer.getMapRenderer()?.setViewport(viewport);
+
+    // Обновление рендерера
     this.renderer.update();
+
+    // Очистка состояния ввода
+    this.inputManager.update();
   }
 
   /**
@@ -125,6 +183,13 @@ export class Game {
    */
   public getMap(): GameMap | null {
     return this.currentMap;
+  }
+
+  /**
+   * Получить камеру
+   */
+  public getCamera(): Camera {
+    return this.camera;
   }
 
   /**
