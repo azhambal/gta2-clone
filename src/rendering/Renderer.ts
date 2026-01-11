@@ -1,5 +1,7 @@
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Container } from 'pixi.js';
 import type { GameConfig } from '../core/Types.js';
+import { MapRenderer } from './MapRenderer.js';
+import { GameMap } from '../world/GameMap.js';
 
 /**
  * Главный рендерер на основе PixiJS
@@ -8,6 +10,9 @@ export class Renderer {
   private app: Application;
   private gameContainer: Container;  // Игровой мир
   private uiContainer: Container;    // UI поверх игры
+
+  // Рендереры
+  private mapRenderer: MapRenderer | null = null;
 
   constructor() {
     this.app = new Application();
@@ -36,31 +41,22 @@ export class Renderer {
     this.app.stage.addChild(this.gameContainer);
     this.app.stage.addChild(this.uiContainer);
 
-    // Тестовый спрайт для проверки
-    this.createTestGraphics();
+    // Инициализация MapRenderer
+    this.mapRenderer = new MapRenderer(this.gameContainer);
   }
 
   /**
-   * Создание тестовой графики
+   * Установка карты для рендеринга
    */
-  private createTestGraphics(): void {
-    // Простой прямоугольник для проверки работы рендерера
-    const graphics = new Graphics();
+  public setMap(map: GameMap): void {
+    this.mapRenderer?.setMap(map);
+  }
 
-    // Зелёный квадрат
-    graphics.rect(100, 100, 64, 64);
-    graphics.fill(0x00ff00);
-
-    // Красный круг
-    graphics.circle(300, 200, 32);
-    graphics.fill(0xff0000);
-
-    // Синяя линия
-    graphics.moveTo(50, 50);
-    graphics.lineTo(200, 150);
-    graphics.stroke({ width: 3, color: 0x0000ff });
-
-    this.gameContainer.addChild(graphics);
+  /**
+   * Обновление рендереров
+   */
+  public update(): void {
+    this.mapRenderer?.update();
   }
 
   /**
@@ -99,6 +95,13 @@ export class Renderer {
   }
 
   /**
+   * Получить MapRenderer
+   */
+  public getMapRenderer(): MapRenderer | null {
+    return this.mapRenderer;
+  }
+
+  /**
    * Получить размеры экрана
    */
   public getScreenSize(): { width: number; height: number } {
@@ -119,6 +122,7 @@ export class Renderer {
    * Уничтожение рендерера
    */
   public destroy(): void {
+    this.mapRenderer?.destroy();
     this.app.destroy(true, { children: true, texture: true });
   }
 }
