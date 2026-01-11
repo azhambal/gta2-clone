@@ -6,6 +6,7 @@ import { EntityFactory } from '../ecs/EntityFactory.js';
 import { VehicleType } from '../data/VehicleDefinitions.js';
 import { BlockType } from '../world/BlockTypes.js';
 import { TrafficAI } from '../ecs/components/index.js';
+import { type DistrictManager } from '../world/DistrictManager.js';
 
 /**
  * Конфигурация спавнера
@@ -36,6 +37,7 @@ export class SpawnManager {
   private gameMap: GameMap;
   private world: GameWorld;
   private physicsManager: PhysicsManager;
+  private districtManager: DistrictManager | null = null;
 
   private spawnedPedestrians: Set<number> = new Set();
   private spawnedVehicles: Set<number> = new Set();
@@ -43,11 +45,19 @@ export class SpawnManager {
   private spawnTimer: number = 0;
   private spawnInterval: number = 500; // мс между попытками спавна
 
-  constructor(world: GameWorld, gameMap: GameMap, physicsManager: PhysicsManager, config: SpawnConfig) {
+  constructor(world: GameWorld, gameMap: GameMap, physicsManager: PhysicsManager, config: SpawnConfig, districtManager?: DistrictManager) {
     this.world = world;
     this.gameMap = gameMap;
     this.physicsManager = physicsManager;
     this.config = config;
+    this.districtManager = districtManager ?? null;
+  }
+
+  /**
+   * Установить менеджер районов
+   */
+  public setDistrictManager(districtManager: DistrictManager): void {
+    this.districtManager = districtManager;
   }
 
   /**
@@ -126,12 +136,23 @@ export class SpawnManager {
    * Попытка спавна новых сущностей
    */
   private trySpawnEntities(playerX: number, playerY: number): void {
+    // Получаем параметры района
+    const district = this.districtManager?.getDistrictAt(playerX, playerY);
+    const pedDensity = district?.getConfig().pedestrianDensity ?? this.config.pedestrianDensity;
+    const vehDensity = district?.getConfig().vehicleDensity ?? this.config.vehicleDensity;
+    const vehicleTypes = district?.getConfig().vehicleTypes ?? null;
+    const pedestrianTypes = district?.getConfig().pedestrianTypes ?? null;
+
     // Спавн пешеходов
     if (this.spawnedPedestrians.size < this.config.maxPedestrians) {
-      if (Math.random() < this.config.pedestrianDensity) {
+      if (Math.random() < pedDensity) {
         const pos = this.findSpawnPosition(playerX, playerY, BlockType.SIDEWALK);
         if (pos) {
-          const eid = EntityFactory.createPedestrian(this.world, pos.x, pos.y, Math.floor(Math.random() * 3));
+          // Выбираем тип пешехода из списка района или случайно
+          const pedType = pedestrianTypes && pedestrianTypes.length > 0
+            ? pedestrianTypes[Math.floor(Math.random() * pedestrianTypes.length)]
+            : Math.floor(Math.random() * 3);
+          const eid = EntityFactory.createPedestrian(this.world, pos.x, pos.y, pedType);
           this.spawnedPedestrians.add(eid);
         }
       }
@@ -139,10 +160,12 @@ export class SpawnManager {
 
     // Спавн машин
     if (this.spawnedVehicles.size < this.config.maxVehicles) {
-      if (Math.random() < this.config.vehicleDensity) {
+      if (Math.random() < vehDensity) {
         const pos = this.findSpawnPosition(playerX, playerY, BlockType.ROAD);
         if (pos) {
-          const vehicleType = this.getRandomVehicleType();
+          const vehicleType = vehicleTypes && vehicleTypes.length > 0
+            ? vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)]
+            : this.getRandomVehicleType();
           const eid = EntityFactory.createVehicle(
             this.world,
             pos.x,

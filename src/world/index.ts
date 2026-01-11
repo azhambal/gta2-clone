@@ -14,3 +14,16 @@ export {
   getSlopeNormal,
   getSlopeAngle,
 } from './SlopeUtils.js';
+export {
+  District,
+  DistrictManager,
+  type DistrictConfig,
+  type Point,
+  type Polygon,
+  type Bounds,
+  pointInPolygon,
+  calculateBounds,
+  createRectPolygon,
+  createRectDistrictConfig,
+  type DistrictChangedEvent,
+} from './DistrictManager.js';

@@ -18,6 +18,8 @@ import { VehicleType } from './data/VehicleDefinitions.js';
 import { audioManager, preloadSounds } from './audio/index.js';
 import { createPedestrianAISystem } from './ai/index.js';
 import { SpawnManager } from './gameplay/index.js';
+import { DistrictManager, createRectDistrictConfig } from './world/index.js';
+import { getDistrictIndicator } from './ui/index.js';
 
 /**
  * Главный класс игры
@@ -32,6 +34,7 @@ export class Game {
   private systemManager!: SystemManager;
   private physicsManager!: PhysicsManager;
   private spawnManager!: SpawnManager;
+  private districtManager!: DistrictManager;
   private playerEntity: number = 0;
 
   constructor(config: Partial<GameConfig> = {}) {
@@ -143,6 +146,13 @@ export class Game {
       maxVehicles: 15,
     });
     Debug.log('Game', 'SpawnManager initialized');
+
+    // Инициализация DistrictManager и создание районов
+    this.districtManager = new DistrictManager();
+    this.setupDistricts(worldWidth, worldHeight);
+    this.spawnManager.setDistrictManager(this.districtManager);
+    this.setupDistrictEvents();
+    Debug.log('Game', 'DistrictManager initialized');
 
     // Создание тестовых машин разных типов
     const vehicle1 = EntityFactory.createVehicle(world, worldWidth / 2 - 100, worldHeight / 2, VehicleType.CAR_SPORT, this.physicsManager);
@@ -260,6 +270,9 @@ export class Game {
       const playerX = Position.x[this.playerEntity] ?? 0;
       const playerY = Position.y[this.playerEntity] ?? 0;
       this.spawnManager.update(playerX, playerY, dt);
+
+      // Обновление текущего района
+      this.districtManager.updateCurrentDistrict(playerX, playerY);
     }
 
     // Обновление физики
@@ -349,6 +362,126 @@ export class Game {
           break;
       }
       Debug.log('Audio', `Volume changed: ${category} = ${volume.toFixed(2)}`);
+    });
+  }
+
+  /**
+   * Настройка районов карты
+   */
+  private setupDistricts(worldWidth: number, worldHeight: number): void {
+    const quarterWidth = worldWidth / 4;
+    const quarterHeight = worldHeight / 4;
+
+    // Downtown (центр города) - высокая плотность пешеходов и машин
+    this.districtManager.addDistrict(createRectDistrictConfig(
+      'downtown',
+      'Downtown',
+      quarterWidth,
+      quarterHeight,
+      quarterWidth * 2,
+      quarterHeight * 2,
+      {
+        pedestrianDensity: 0.8,
+        vehicleDensity: 0.6,
+        vehicleTypes: [VehicleType.CAR_SEDAN, VehicleType.CAR_TAXI, VehicleType.CAR_SPORT, VehicleType.BUS],
+        pedestrianTypes: [0, 1, 2],
+        ambientTrack: 'ambient_city',
+        policePresence: 0.7,
+      }
+    ));
+
+    // Industrial Zone (юго-восток) - низкая плотность, грузовики
+    this.districtManager.addDistrict(createRectDistrictConfig(
+      'industrial',
+      'Industrial Zone',
+      quarterWidth * 2,
+      quarterHeight * 2,
+      quarterWidth * 2,
+      quarterHeight * 2,
+      {
+        pedestrianDensity: 0.2,
+        vehicleDensity: 0.4,
+        vehicleTypes: [VehicleType.TRUCK, VehicleType.BUS],
+        pedestrianTypes: [3, 4],
+        ambientTrack: 'ambient_industrial',
+        policePresence: 0.2,
+      }
+    ));
+
+    // Residential District (северо-запад) - средняя плотность, легковые машины
+    this.districtManager.addDistrict(createRectDistrictConfig(
+      'residential',
+      'Residential District',
+      0,
+      0,
+      quarterWidth * 2,
+      quarterHeight * 2,
+      {
+        pedestrianDensity: 0.5,
+        vehicleDensity: 0.3,
+        vehicleTypes: [VehicleType.CAR_SEDAN, VehicleType.CAR_TAXI],
+        pedestrianTypes: [0, 1, 2],
+        ambientTrack: 'ambient_quiet',
+        policePresence: 0.3,
+      }
+    ));
+
+    // Entertainment District (северо-восток) - высокая плотность, спортивные машины
+    this.districtManager.addDistrict(createRectDistrictConfig(
+      'entertainment',
+      'Entertainment District',
+      quarterWidth * 2,
+      0,
+      quarterWidth * 2,
+      quarterHeight * 2,
+      {
+        pedestrianDensity: 0.9,
+        vehicleDensity: 0.5,
+        vehicleTypes: [VehicleType.CAR_SPORT, VehicleType.CAR_SEDAN, VehicleType.MOTORCYCLE],
+        pedestrianTypes: [0, 1, 2],
+        ambientTrack: 'ambient_nightlife',
+        policePresence: 0.5,
+      }
+    ));
+
+    // Suburbs (юго-запад) - низкая плотность
+    this.districtManager.addDistrict(createRectDistrictConfig(
+      'suburbs',
+      'Suburbs',
+      0,
+      quarterHeight * 2,
+      quarterWidth * 2,
+      quarterHeight * 2,
+      {
+        pedestrianDensity: 0.3,
+        vehicleDensity: 0.2,
+        vehicleTypes: [VehicleType.CAR_SEDAN, VehicleType.CAR_TAXI],
+        pedestrianTypes: [0, 1],
+        ambientTrack: 'ambient_quiet',
+        policePresence: 0.1,
+      }
+    ));
+
+    Debug.log('Game', `Created ${this.districtManager.getCount()} districts`);
+  }
+
+  /**
+   * Настройка событий районов
+   */
+  private setupDistrictEvents(): void {
+    eventBus.on('district:changed', ({ from, to }) => {
+      const fromName = from?.name ?? 'Wilderness';
+      const toName = to?.name ?? 'Wilderness';
+
+      Debug.log('District', `Entered: ${toName} (from ${fromName})`);
+
+      // Показать UI уведомление о смене района
+      if (to) {
+        const indicator = getDistrictIndicator();
+        indicator.show(to.name);
+      }
+
+      // TODO: Сменить фоновую музыку/звуки в соответствии с районом
     });
   }
 
