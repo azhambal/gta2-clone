@@ -9,6 +9,8 @@ import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
 import { InputManager, GameAction } from './input/index.js';
 import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem, createMapCollisionSystem } from './ecs/index.js';
+import { PhysicsManager } from './physics/PhysicsManager.js';
+import { createPhysicsSyncSystem } from './ecs/systems/PhysicsSyncSystem.js';
 
 /**
  * Главный класс игры
@@ -21,6 +23,7 @@ export class Game {
   private camera!: Camera;
   private inputManager!: InputManager;
   private systemManager!: SystemManager;
+  private physicsManager!: PhysicsManager;
   private playerEntity: number = 0;
 
   constructor(config: Partial<GameConfig> = {}) {
@@ -88,6 +91,12 @@ export class Game {
     // Инициализация ввода
     this.inputManager = new InputManager();
 
+    // Инициализация физики
+    this.physicsManager = new PhysicsManager({
+      gravity: { x: 0, y: 0 }, // Вид сверху
+    });
+    Debug.log('Game', 'Physics initialized');
+
     // Инициализация ECS
     this.systemManager = new SystemManager();
     this.systemManager.register('playerInput', createPlayerInputSystem(this.inputManager), 0);
@@ -95,6 +104,8 @@ export class Game {
     // Регистрация системы коллизий после movement
     this.systemManager.register('mapCollision', createMapCollisionSystem(this.currentMap), 15);
     this.systemManager.register('animation', animationSystem, 20);
+    // Регистрация системы синхронизации физики (после всех физических систем)
+    this.systemManager.register('physicsSync', createPhysicsSyncSystem(this.physicsManager), 50);
 
     // Создание тестового игрока
     const world = ecsWorld.getWorld();
@@ -182,9 +193,13 @@ export class Game {
    * Фиксированное обновление (физика)
    */
   private fixedUpdate(dt: number): void {
-    // Обновление ECS систем
     const world = ecsWorld.getWorld();
+
+    // Обновление ECS систем
     this.systemManager.update(world, dt);
+
+    // Обновление физики
+    this.physicsManager.update(dt);
   }
 
   /**
