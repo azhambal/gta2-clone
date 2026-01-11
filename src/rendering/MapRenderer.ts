@@ -2,6 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import { GameMap } from '../world/GameMap.js';
 import { Chunk } from '../world/Chunk.js';
 import { BlockType } from '../world/BlockTypes.js';
+import { SlopeDirection, getSlopeDirection } from '../world/SlopeUtils.js';
 import { IsometricUtils } from './IsometricUtils.js';
 import { GAME_CONSTANTS, type Rectangle } from '../core/Types.js';
 
@@ -127,15 +128,24 @@ export class MapRenderer {
     // Позиция блока на экране (относительно чанка)
     const screenPos = IsometricUtils.blockToScreen(localX, localY, z);
 
-    // Отрисовка верхней грани (всегда видна)
-    this.drawBlockTop(graphics, screenPos.x, screenPos.y, color);
+    // Проверка, является ли блок наклонным
+    const slopeDir = getSlopeDirection(blockType);
 
-    // Отрисовка боковых граней (только если нет соседнего блока)
-    // Южная грань (передняя)
-    this.drawBlockSouth(graphics, screenPos.x, screenPos.y, this.darkenColor(color, 0.7));
+    if (slopeDir !== null) {
+      // Рендеринг наклонного блока
+      this.drawSlope(graphics, screenPos.x, screenPos.y, slopeDir, color);
+    } else {
+      // Обычный блок
+      // Отрисовка верхней грани (всегда видна)
+      this.drawBlockTop(graphics, screenPos.x, screenPos.y, color);
 
-    // Восточная грань (правая)
-    this.drawBlockEast(graphics, screenPos.x, screenPos.y, this.darkenColor(color, 0.85));
+      // Отрисовка боковых граней (только если нет соседнего блока)
+      // Южная грань (передняя)
+      this.drawBlockSouth(graphics, screenPos.x, screenPos.y, this.darkenColor(color, 0.7));
+
+      // Восточная грань (правая)
+      this.drawBlockEast(graphics, screenPos.x, screenPos.y, this.darkenColor(color, 0.85));
+    }
   }
 
   /**
@@ -167,6 +177,89 @@ export class MapRenderer {
     graphics.rect(x + BLOCK_SIZE, y, sideHeight * 0.5, BLOCK_SIZE + sideHeight);
     graphics.fill(color);
     graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+  }
+
+  /**
+   * Отрисовка наклонного блока (slope)
+   *
+   * Slope - это блок, у которого верхняя грань наклонена от одного края к другому.
+   * Высота изменяется от 0 до BLOCK_SIZE * 0.5 (полный блок).
+   */
+  private drawSlope(
+    graphics: Graphics,
+    x: number,
+    y: number,
+    direction: SlopeDirection,
+    color: number
+  ): void {
+    const halfHeight = BLOCK_SIZE * 0.25; // Половина высоты боковой грани
+
+    switch (direction) {
+      case SlopeDirection.NORTH:
+        // Подъём на север (вверх, -Y). Низкий юг, высокий север.
+        // Верхняя грань - трапеция, наклонённая к северу
+        graphics.moveTo(x, y + BLOCK_SIZE); // Юго-западный угол (низ)
+        graphics.lineTo(x + BLOCK_SIZE, y + BLOCK_SIZE); // Юго-восточный угол (низ)
+        graphics.lineTo(x + BLOCK_SIZE, y + halfHeight); // Северо-восточный угол (верх)
+        graphics.lineTo(x, y + halfHeight); // Северо-западный угол (верх)
+        graphics.closePath();
+        graphics.fill(color);
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+
+        // Северная боковая грань (вертикальная на верхнем краю)
+        graphics.rect(x, y + halfHeight, BLOCK_SIZE, halfHeight);
+        graphics.fill(this.darkenColor(color, 0.7));
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+        break;
+
+      case SlopeDirection.SOUTH:
+        // Подъём на юг (вниз, +Y). Низкий север, высокий юг.
+        graphics.moveTo(x, y); // Северо-западный угол (низ)
+        graphics.lineTo(x + BLOCK_SIZE, y); // Северо-восточный угол (низ)
+        graphics.lineTo(x + BLOCK_SIZE, y + BLOCK_SIZE - halfHeight); // Юго-восточный угол (верх)
+        graphics.lineTo(x, y + BLOCK_SIZE - halfHeight); // Юго-западный угол (верх)
+        graphics.closePath();
+        graphics.fill(color);
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+
+        // Южная боковая грань
+        graphics.rect(x, y + BLOCK_SIZE - halfHeight, BLOCK_SIZE, halfHeight);
+        graphics.fill(this.darkenColor(color, 0.7));
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+        break;
+
+      case SlopeDirection.EAST:
+        // Подъём на восток (вправо, +X). Низкий запад, высокий восток.
+        graphics.moveTo(x, y); // Северо-западный угол (низ)
+        graphics.lineTo(x, y + BLOCK_SIZE); // Юго-западный угол (низ)
+        graphics.lineTo(x + BLOCK_SIZE - halfHeight, y + BLOCK_SIZE); // Юго-восточный угол (верх)
+        graphics.lineTo(x + BLOCK_SIZE - halfHeight, y); // Северо-восточный угол (верх)
+        graphics.closePath();
+        graphics.fill(color);
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+
+        // Восточная боковая грань
+        graphics.rect(x + BLOCK_SIZE - halfHeight, y, halfHeight, BLOCK_SIZE);
+        graphics.fill(this.darkenColor(color, 0.85));
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+        break;
+
+      case SlopeDirection.WEST:
+        // Подъём на запад (влево, -X). Низкий восток, высокий запад.
+        graphics.moveTo(x + halfHeight, y); // Северо-восточный угол (низ)
+        graphics.lineTo(x + halfHeight, y + BLOCK_SIZE); // Юго-восточный угол (низ)
+        graphics.lineTo(x + BLOCK_SIZE, y + BLOCK_SIZE); // Юго-западный угол (верх)
+        graphics.lineTo(x + BLOCK_SIZE, y); // Северо-западный угол (верх)
+        graphics.closePath();
+        graphics.fill(color);
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+
+        // Западная боковая грань (левая вертикальная)
+        graphics.rect(x, y, halfHeight, BLOCK_SIZE);
+        graphics.fill(this.darkenColor(color, 0.85));
+        graphics.stroke({ width: 1, color: 0x000000, alpha: 0.2 });
+        break;
+    }
   }
 
   /**

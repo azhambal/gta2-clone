@@ -57,7 +57,122 @@ export class MapGenerator {
     MapGenerator.createBuilding(map, 5, roadY + 5, 3, 3, 1);
     MapGenerator.createBuilding(map, roadX + 5, 5, 5, 3, 3);
 
+    // Создание моста для демонстрации многоуровневости
+    // Мост над горизонтальной дорогой
+    MapGenerator.createBridge(
+      map,
+      roadX - 5, roadY,     // Начало (слева от дороги)
+      roadX + 5, roadY,     // Конец (справа от дороги)
+      1,                    // Высота моста (Z = 1)
+      true                  // Горизонтальный мост
+    );
+
     return map;
+  }
+
+  /**
+   * Создание моста с наклонами для въезда/съезда
+   *
+   * @param map - Карта
+   * @param startX - Начальная координата X
+   * @param startY - Начальная координата Y
+   * @param endX - Конечная координата X
+   * @param endY - Конечная координата Y
+   * @param heightZ - Высота моста (Z уровень)
+   * @param horizontal - Ориентация моста (true = горизонтальный, false = вертикальный)
+   */
+  public static createBridge(
+    map: GameMap,
+    startX: number,
+    startY: number,
+    endX: number,
+    endY: number,
+    heightZ: number,
+    horizontal: boolean
+  ): void {
+    // Нормализация координат (начало всегда меньше конца)
+    const x1 = Math.min(startX, endX);
+    const x2 = Math.max(startX, endX);
+    const y1 = Math.min(startY, endY);
+    const y2 = Math.max(startY, endY);
+
+    if (horizontal) {
+      // Горизонтальный мост (движение по X)
+
+      // Наклон в начале (въезд с запада на восток)
+      // SLOPE_W - подъём на запад (въезд с востока) — не подходит
+      // SLOPE_E - подъём на восток (въезд с запада) — подходит для въезда на мост
+      map.setBlockType(x1, y1, 0, BlockType.SLOPE_E);
+      // Ширина моста 3 блока
+      map.setBlockType(x1, y1 + 1, 0, BlockType.SLOPE_E);
+      map.setBlockType(x1, y1 - 1, 0, BlockType.SLOPE_E);
+
+      // Платформа моста (на высоте heightZ)
+      for (let x = x1 + 1; x < x2; x++) {
+        map.setBlockType(x, y1, heightZ, BlockType.ROAD);
+        map.setBlockType(x, y1 + 1, heightZ, BlockType.ROAD);
+        map.setBlockType(x, y1 - 1, heightZ, BlockType.ROAD);
+
+        // Барьеры по краям моста
+        map.setBlockType(x, y1 - 1, heightZ, BlockType.SIDEWALK);
+        map.setBlockType(x, y1 + 1, heightZ, BlockType.SIDEWALK);
+      }
+
+      // Наклон в конце (съезд с моста на восток)
+      // SLOPE_W - подъём на запад (въезд с востока) — для съезда нужен обратный наклон
+      // Для съезда на восток нужен SLOPE_E на уровне ниже
+      map.setBlockType(x2, y1, heightZ - 1, BlockType.SLOPE_E);
+      map.setBlockType(x2, y1 + 1, heightZ - 1, BlockType.SLOPE_E);
+      map.setBlockType(x2, y1 - 1, heightZ - 1, BlockType.SLOPE_E);
+
+    } else {
+      // Вертикальный мост (движение по Y)
+
+      // Наклон в начале (въезд с юга на север)
+      map.setBlockType(x1, y1, 0, BlockType.SLOPE_N);
+      map.setBlockType(x1 + 1, y1, 0, BlockType.SLOPE_N);
+      map.setBlockType(x1 - 1, y1, 0, BlockType.SLOPE_N);
+
+      // Платформа моста
+      for (let y = y1 + 1; y < y2; y++) {
+        map.setBlockType(x1, y, heightZ, BlockType.ROAD);
+        map.setBlockType(x1 + 1, y, heightZ, BlockType.ROAD);
+        map.setBlockType(x1 - 1, y, heightZ, BlockType.ROAD);
+
+        // Барьеры
+        map.setBlockType(x1 - 1, y, heightZ, BlockType.SIDEWALK);
+        map.setBlockType(x1 + 1, y, heightZ, BlockType.SIDEWALK);
+      }
+
+      // Наклон в конце (съезд на север)
+      map.setBlockType(x1, y2, heightZ - 1, BlockType.SLOPE_N);
+      map.setBlockType(x1 + 1, y2, heightZ - 1, BlockType.SLOPE_N);
+      map.setBlockType(x1 - 1, y2, heightZ - 1, BlockType.SLOPE_N);
+    }
+  }
+
+  /**
+   * Создание эстакады (raised highway)
+   *
+   * @param map - Карта
+   * @param startX - Начальная координата X
+   * @param startY - Начальная координата Y
+   * @param length - Длина эстакады
+   * @param heightZ - Высота эстакады
+   * @param horizontal - Ориентация
+   */
+  public static createOverpass(
+    map: GameMap,
+    startX: number,
+    startY: number,
+    length: number,
+    heightZ: number,
+    horizontal: boolean
+  ): void {
+    const endX = horizontal ? startX + length : startX;
+    const endY = horizontal ? startY : startY + length;
+
+    MapGenerator.createBridge(map, startX, startY, endX, endY, heightZ, horizontal);
   }
 
   /**

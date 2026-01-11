@@ -98,7 +98,8 @@ function checkAxisCollision(
       const block = map.getBlock(bx, by, z);
       const blockDef = blockRegistry.get(block.getType());
 
-      // Проверка только твёрдых блоков
+      // Проверка только твёрдых блоков (SLOPE = 2 не блокирует движение)
+      // SOLID = 1 блокирует, SLOPE = 2 пропускается (обрабатывается в SlopeSystem)
       if (!blockDef || blockDef.collision !== CollisionType.SOLID) {
         continue;
       }
@@ -167,6 +168,7 @@ export function canMoveTo(
       const block = map.getBlock(bx, by, z);
       const blockDef = blockRegistry.get(block.getType());
 
+      // SLOPE = 2 не блокирует движение
       if (!blockDef || blockDef.collision !== CollisionType.SOLID) {
         continue;
       }

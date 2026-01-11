@@ -97,10 +97,41 @@ export class BlockRegistry {
       animationSpeed: 0.2,
     });
 
-    // Наклоны
+    // Наклоны (Slopes)
+    // SLOPE_N - подъём на север (въезд с юга), Z увеличивается при движении на север (-Y)
     this.register({
       id: BlockType.SLOPE_N,
       name: 'Slope North',
+      textures: { top: 10, bottom: 1, north: 2, south: 2, east: 2, west: 2 },
+      collision: CollisionType.SLOPE,
+      surface: SurfaceType.ROAD,
+      flags: BlockFlags.NONE,
+    });
+
+    // SLOPE_S - подъём на юг (въезд с севера), Z увеличивается при движении на юг (+Y)
+    this.register({
+      id: BlockType.SLOPE_S,
+      name: 'Slope South',
+      textures: { top: 10, bottom: 1, north: 2, south: 2, east: 2, west: 2 },
+      collision: CollisionType.SLOPE,
+      surface: SurfaceType.ROAD,
+      flags: BlockFlags.NONE,
+    });
+
+    // SLOPE_E - подъём на восток (въезд с запада), Z увеличивается при движении на восток (+X)
+    this.register({
+      id: BlockType.SLOPE_E,
+      name: 'Slope East',
+      textures: { top: 10, bottom: 1, north: 2, south: 2, east: 2, west: 2 },
+      collision: CollisionType.SLOPE,
+      surface: SurfaceType.ROAD,
+      flags: BlockFlags.NONE,
+    });
+
+    // SLOPE_W - подъём на запад (въезд с востока), Z увеличивается при движении на запад (-X)
+    this.register({
+      id: BlockType.SLOPE_W,
+      name: 'Slope West',
       textures: { top: 10, bottom: 1, north: 2, south: 2, east: 2, west: 2 },
       collision: CollisionType.SLOPE,
       surface: SurfaceType.ROAD,

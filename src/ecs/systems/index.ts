@@ -6,3 +6,4 @@ export { createPhysicsSyncSystem } from './PhysicsSyncSystem.js';
 export { createVehiclePhysicsSystem } from './VehiclePhysicsSystem.js';
 export { createVehicleInteractionSystem } from './VehicleInteractionSystem.js';
 export { createSurfaceEffectSystem, getParticleQueue, clearParticleQueue } from './SurfaceEffectSystem.js';
+export { createSlopeSystem, getZAtPosition, isOnSlope } from './SlopeSystem.js';
