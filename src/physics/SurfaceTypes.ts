@@ -43,6 +43,14 @@ export interface SurfaceProperties {
   damaging: boolean;
   /** Урон в секунду (если damaging = true) */
   damagePerSecond: number;
+  /** Пылевые частицы при движении */
+  dustParticles: boolean;
+  /** Брызги воды */
+  waterSplash: boolean;
+  /** Тип звука (для аудио системы) */
+  soundType: string;
+  /** Цвет частиц (hex) */
+  particleColor: number;
 }
 
 /**
@@ -67,6 +75,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'normal',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: false,
+    waterSplash: false,
+    soundType: 'road',
+    particleColor: 0x888888,
   },
 
   [SurfaceType.GRASS]: {
@@ -78,6 +90,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'dust',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: true,
+    waterSplash: false,
+    soundType: 'grass',
+    particleColor: 0x7CBA3D,
   },
 
   [SurfaceType.DIRT]: {
@@ -89,6 +105,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'dust_trail',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: true,
+    waterSplash: false,
+    soundType: 'dirt',
+    particleColor: 0x8B7355,
   },
 
   [SurfaceType.ICE]: {
@@ -100,6 +120,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'sliding',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: false,
+    waterSplash: false,
+    soundType: 'ice',
+    particleColor: 0xC8F0F8,
   },
 
   [SurfaceType.OIL]: {
@@ -111,6 +135,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'slip',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: false,
+    waterSplash: false,
+    soundType: 'oil',
+    particleColor: 0x2C2C2C,
   },
 
   [SurfaceType.WATER]: {
@@ -122,6 +150,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'splash',
     damaging: true,
     damagePerSecond: 10,
+    dustParticles: false,
+    waterSplash: true,
+    soundType: 'water',
+    particleColor: 0x4A90D9,
   },
 
   [SurfaceType.SAND]: {
@@ -133,6 +165,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'sand_spray',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: true,
+    waterSplash: false,
+    soundType: 'sand',
+    particleColor: 0xE8D89A,
   },
 
   [SurfaceType.SNOW]: {
@@ -144,6 +180,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'snow_particles',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: true,
+    waterSplash: false,
+    soundType: 'snow',
+    particleColor: 0xFFFFFF,
   },
 
   [SurfaceType.MUD]: {
@@ -155,6 +195,10 @@ export const SURFACE_DEFINITIONS: Record<SurfaceType, SurfaceProperties> = {
     effect: 'mud_splatter',
     damaging: false,
     damagePerSecond: 0,
+    dustParticles: true,
+    waterSplash: false,
+    soundType: 'mud',
+    particleColor: 0x6B4423,
   },
 };
 
