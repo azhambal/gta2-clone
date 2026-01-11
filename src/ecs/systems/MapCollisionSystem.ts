@@ -4,6 +4,7 @@ import type { GameMap } from '../../world/GameMap.js';
 import { blockRegistry } from '../../world/BlockRegistry.js';
 import { CollisionType } from '../../world/BlockTypes.js';
 import { GAME_CONSTANTS } from '../../core/Types.js';
+import { Position, Velocity, Collider } from '../components/index.js';
 
 const { BLOCK_SIZE } = GAME_CONSTANTS;
 
@@ -25,7 +26,6 @@ interface CollisionResult {
  */
 export const createMapCollisionSystem = (gameMap: GameMap) => {
   return (world: GameWorld, dt: number) => {
-    const { Position, Velocity, Collider } = world.components;
     const entities = query(world, [Position, Velocity, Collider]);
 
     for (const eid of entities) {

@@ -27,7 +27,7 @@ GTA 2 Clone — это амбициозный проект по созданию
 | **Рендеринг** | PixiJS 8.x | WebGL рендеринг спрайтов |
 | **Физика** | Matter.js 0.19.x | 2D физика твёрдых тел |
 | **Звук** | Howler.js 2.2.x | Кроссбраузерное аудио |
-| **ECS** | bitECS 0.3.x | Entity Component System |
+| **ECS** | bitECS 0.4.x | Entity Component System |
 
 ### Архитектурные решения
 

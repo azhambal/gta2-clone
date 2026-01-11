@@ -2,6 +2,13 @@ import { Container, Graphics } from 'pixi.js';
 import { query } from 'bitecs';
 import { ecsWorld } from '../ecs/index.js';
 import { VehicleType } from '../data/VehicleDefinitions.js';
+import {
+  Position,
+  Rotation,
+  SpriteComponent,
+  PlayerControlled,
+  Vehicle,
+} from '../ecs/components/index.js';
 
 /**
  * Цвета для разных типов сущностей (заглушки до появления спрайтов)
@@ -40,8 +47,6 @@ export class EntityRenderer {
    */
   public update(): void {
     const world = ecsWorld.getWorld();
-    const { Position, Rotation, SpriteComponent, PlayerControlled, Pedestrian: _Pedestrian, Vehicle } =
-      world.components;
 
     // Находим все сущности с Position и SpriteComponent
     const entities = query(world, [Position, SpriteComponent]);

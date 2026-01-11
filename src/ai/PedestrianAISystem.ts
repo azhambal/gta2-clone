@@ -32,6 +32,13 @@ export const createPedestrianAISystem = (gameMap: GameMap) => {
 
       // Обработка состояния
       const state = PedestrianAI.state[eid] as PedestrianState;
+      
+      // Отладка: проверяем, что состояние корректно
+      if (state === undefined || isNaN(state)) {
+        console.warn(`Pedestrian ${eid} has invalid state: ${state}`);
+        PedestrianAI.state[eid] = PedestrianState.IDLE;
+        continue;
+      }
 
       switch (state) {
         case PedestrianState.IDLE:
@@ -79,17 +86,37 @@ function handleIdleState(
 
   // Когда таймер истекает, выбираем новую цель
   if (PedestrianAI.stateTimer[eid] <= 0) {
-    // Ищем случайную позицию на тротуаре рядом
-    const newTarget = pathfinder.findNearestWalkablePosition(x, y, 500, 0);
+    // Сначала пробуем найти случайную позицию (более естественное поведение)
+    let newTarget = pathfinder.findRandomWalkablePosition(x, y, 500, 0);
+    
+    // Если не нашли случайную, пробуем ближайшую с большим радиусом
+    if (!newTarget) {
+      newTarget = pathfinder.findNearestWalkablePosition(x, y, 1000, 0);
+    }
+    
+    // Если все еще не нашли, пробуем найти любую проходимую позицию в радиусе 200
+    if (!newTarget) {
+      newTarget = pathfinder.findNearestWalkablePosition(x, y, 200, 0);
+    }
 
     if (newTarget) {
-      PedestrianAI.targetX[eid] = newTarget.x;
-      PedestrianAI.targetY[eid] = newTarget.y;
-      PedestrianAI.hasTarget[eid] = 1;
-      changeState(eid, PedestrianState.WALKING);
+      // Проверяем, что цель не слишком близко (чтобы пешеход не сразу достиг цели)
+      const dx = newTarget.x - x;
+      const dy = newTarget.y - y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      
+      if (dist > 20) { // Минимальное расстояние для движения
+        PedestrianAI.targetX[eid] = newTarget.x;
+        PedestrianAI.targetY[eid] = newTarget.y;
+        PedestrianAI.hasTarget[eid] = 1;
+        changeState(eid, PedestrianState.WALKING);
+      } else {
+        // Цель слишком близко, ищем другую
+        PedestrianAI.stateTimer[eid] = 0.5 + Math.random() * 1;
+      }
     } else {
-      // Если не нашли цель, ждем еще
-      PedestrianAI.stateTimer[eid] = 2 + Math.random() * 3;
+      // Если не нашли цель, ждем еще (но с меньшим таймером для повторной попытки)
+      PedestrianAI.stateTimer[eid] = 0.5 + Math.random() * 1; // Быстрее повторяем попытку
     }
   }
 

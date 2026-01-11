@@ -4,6 +4,11 @@ import type { GameMap } from '../../world/GameMap.js';
 import { Position, Velocity, Vehicle, VehiclePhysics } from '../components/index.js';
 import { getSurfaceProperties } from '../../physics/SurfaceTypes.js';
 
+// Alias for Position for code clarity
+const Pos = Position;
+const Vel = Velocity;
+const VPhys = VehiclePhysics;
+
 /**
  * Параметры частиц для системы
  */
@@ -51,8 +56,6 @@ export const createSurfaceEffectSystem = (gameMap: GameMap | null = null) => {
     if (currentTime - lastSpawnTime < PARTICLE_SPAWN_INTERVAL) {
       return world;
     }
-
-    const { Position: Pos, Velocity: Vel, VehiclePhysics: VPhys } = world.components;
 
     // Находим все движущиеся машины
     const vehicles = query(world, [Vehicle, VehiclePhysics, Position, Velocity]);

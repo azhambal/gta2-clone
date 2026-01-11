@@ -5,8 +5,13 @@ import type { PhysicsManager } from '../physics/PhysicsManager.js';
 import { EntityFactory } from '../ecs/EntityFactory.js';
 import { VehicleType } from '../data/VehicleDefinitions.js';
 import { BlockType } from '../world/BlockTypes.js';
-import { TrafficAI } from '../ecs/components/index.js';
+import { Position, VehicleOccupants, TrafficAI } from '../ecs/components/index.js';
 import { type DistrictManager } from '../world/DistrictManager.js';
+
+// Alias for Position for code clarity
+const Pos = Position;
+const VOcc = VehicleOccupants;
+const TAI = TrafficAI;
 
 /**
  * Конфигурация спавнера
@@ -84,7 +89,6 @@ export class SpawnManager {
    */
   private despawnFarEntities(playerX: number, playerY: number): void {
     const despawnDistSq = this.config.despawnRadius ** 2;
-    const { Position: Pos, VehicleOccupants: VOcc } = this.world.components;
 
     // Деспавн пешеходов
     const pedsToRemove: number[] = [];
@@ -177,7 +181,6 @@ export class SpawnManager {
 
           // Добавляем AI трафика
           addComponent(this.world, eid, TrafficAI);
-          const { TrafficAI: TAI } = this.world.components;
           TAI.state[eid] = 0; // DRIVING
           TAI.previousState[eid] = 0;
           TAI.desiredSpeed[eid] = 100 + Math.random() * 100;
@@ -240,7 +243,6 @@ export class SpawnManager {
    * Проверка наличия сущности в радиусе от точки
    */
   private hasEntityAt(x: number, y: number, radius: number): boolean {
-    const { Position: Pos } = this.world.components;
     const radiusSq = radius * radius;
 
     // Проверка пешеходов
@@ -289,8 +291,6 @@ export class SpawnManager {
    * Очистить всех заспавненных сущностей
    */
   public clearAll(): void {
-    const { Position: Pos } = this.world.components;
-
     // Удалить всех пешеходов
     for (const eid of this.spawnedPedestrians) {
       if (Pos.x[eid] !== undefined) {

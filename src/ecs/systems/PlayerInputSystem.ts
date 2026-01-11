@@ -2,7 +2,10 @@ import { query } from 'bitecs';
 import type { GameWorld } from '../World.js';
 import type { InputManager } from '../../input/InputManager.js';
 import { GameAction } from '../../input/index.js';
-import { PlayerControlled, VehiclePhysics, Vehicle, VehicleOccupants } from '../components/index.js';
+import { Position, Velocity, Rotation, PlayerControlled, Driver, VehiclePhysics, Vehicle, VehicleOccupants } from '../components/index.js';
+
+// Alias for Driver for code clarity
+const Drv = Driver;
 
 const WALK_SPEED = 100;
 const RUN_SPEED = 200;
@@ -13,7 +16,6 @@ const RUN_SPEED = 200;
  */
 export const createPlayerInputSystem = (inputManager: InputManager) => {
   return (world: GameWorld, _dt: number) => {
-    const { Position, Velocity, Rotation, Driver: Drv } = world.components;
     const entities = query(world, [PlayerControlled, Position, Velocity, Rotation]);
 
     for (const eid of entities) {

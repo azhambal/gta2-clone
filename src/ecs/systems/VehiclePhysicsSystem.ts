@@ -2,12 +2,15 @@ import { query } from 'bitecs';
 import type { GameWorld } from '../World.js';
 import type { PhysicsManager } from '../../physics/PhysicsManager.js';
 import type { GameMap } from '../../world/GameMap.js';
-import { Position, Velocity, Rotation, Vehicle, VehiclePhysics, RigidBody } from '../components/index.js';
 import {
   calculateSurfaceGrip,
   calculateSurfaceFriction,
   calculateSurfaceMaxSpeed,
 } from '../../physics/SurfaceTypes.js';
+import { Position, Velocity, Rotation, Vehicle, VehiclePhysics, RigidBody } from '../components/index.js';
+
+// Alias for Position for code clarity
+const Pos = Position;
 
 /**
  * Параметры физики по умолчанию
@@ -35,7 +38,6 @@ export const createVehiclePhysicsSystem = (
 ) => {
   return (world: GameWorld, dt: number) => {
     const deltaSeconds = dt / 1000;
-    const { Position: Pos } = world.components;
 
     // Находим все сущности с Vehicle и VehiclePhysics компонентами
     const entities = query(world, [Vehicle, VehiclePhysics, Position, Velocity, Rotation]);

@@ -3,7 +3,10 @@ import type { GameWorld } from '../World.js';
 import type { InputManager } from '../../input/InputManager.js';
 import { GameAction } from '../../input/index.js';
 import { eventBus } from '../../core/EventBus.js';
-import { PlayerControlled, Driver, Vehicle, Position } from '../components/index.js';
+import { PlayerControlled, Driver, Vehicle, Position, VehicleOccupants, Rotation, SpriteComponent, VehiclePhysics } from '../components/index.js';
+
+// Alias for Position for code clarity
+const Pos = Position;
 
 /**
  * Максимальное расстояние для входа в машину (в пикселях)
@@ -60,7 +63,6 @@ function findNearestVehicle(
 ): number {
   // Получаем все машины
   const vehicles = query(world, [Vehicle, Position]);
-  const { Position: Pos, VehicleOccupants } = world.components;
 
   let nearest = 0;
   let nearestDist = maxDistance;
@@ -93,7 +95,6 @@ function enterVehicle(
   playerEid: number,
   vehicleEid: number
 ): void {
-  const { VehicleOccupants, SpriteComponent } = world.components;
 
   // Проверка: есть ли свободное место (уже проверили в findNearestVehicle, но на всякий случай)
   if (VehicleOccupants.driver[vehicleEid] !== 0) {
@@ -118,15 +119,13 @@ function enterVehicle(
  * Выход из машины
  */
 function exitVehicle(
-  world: GameWorld,
+  _world: GameWorld,
   playerEid: number
 ): void {
   const vehicleEid = Driver.vehicleEntity[playerEid];
   if (!vehicleEid) {
     return;
   }
-
-  const { VehicleOccupants, Position, Rotation, SpriteComponent, VehiclePhysics } = world.components;
 
   // Позиция выхода (сбоку от машины)
   const angle = Rotation.angle[vehicleEid];

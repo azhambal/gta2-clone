@@ -21,6 +21,7 @@ import { createTrafficAISystem } from './ecs/systems/TrafficAISystem.js';
 import { SpawnManager } from './gameplay/index.js';
 import { DistrictManager, createRectDistrictConfig } from './world/index.js';
 import { getDistrictIndicator } from './ui/index.js';
+import { Position, Vehicle } from './ecs/components/index.js';
 
 /**
  * Главный класс игры
@@ -220,9 +221,6 @@ export class Game {
     Debug.updateFps(this.engine.getFps());
 
     // Камера следует за игроком
-    const world = ecsWorld.getWorld();
-    const { Position } = world.components;
-
     if (this.playerEntity && Position.x[this.playerEntity] !== undefined) {
       const playerX = Position.x[this.playerEntity];
       const playerY = Position.y[this.playerEntity];
@@ -274,7 +272,6 @@ export class Game {
 
     // Обновление SpawnManager (спавн/деспавн сущностей)
     if (this.playerEntity > 0) {
-      const { Position } = world.components;
       const playerX = Position.x[this.playerEntity] ?? 0;
       const playerY = Position.y[this.playerEntity] ?? 0;
       this.spawnManager.update(playerX, playerY, dt);
@@ -321,9 +318,6 @@ export class Game {
 
     // Обработка коллизий для звуков столкновений
     eventBus.on('physics:collisionStart', ({ entityA, entityB, pair }) => {
-      const world = ecsWorld.getWorld();
-      const { Vehicle } = world.components;
-
       // Проверяем, что обе сущности - машины
       const isVehicleA = Vehicle.type[entityA] !== undefined;
       const isVehicleB = Vehicle.type[entityB] !== undefined;
@@ -338,7 +332,6 @@ export class Game {
         const threshold = 10; // Порог для проигрывания звука
 
         if (relativeVelocity > threshold) {
-          const { Position } = world.components;
           const ax = Position.x[entityA] ?? 0;
           const ay = Position.y[entityA] ?? 0;
           const cameraPos = this.camera.getPosition();

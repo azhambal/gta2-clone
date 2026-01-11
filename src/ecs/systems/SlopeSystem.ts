@@ -9,6 +9,7 @@ import {
 import { blockRegistry } from '../../world/BlockRegistry.js';
 import { CollisionType } from '../../world/BlockTypes.js';
 import { GAME_CONSTANTS } from '../../core/Types.js';
+import { Position, Velocity } from '../components/index.js';
 
 const { BLOCK_SIZE } = GAME_CONSTANTS;
 
@@ -20,8 +21,6 @@ const { BLOCK_SIZE } = GAME_CONSTANTS;
  */
 export const createSlopeSystem = (gameMap: GameMap) => {
   return (world: GameWorld) => {
-    const { Position, Velocity } = world.components;
-
     // Запрос всех движущихся сущностей (позиция и скорость)
     const entities = query(world, [Position, Velocity]);
 

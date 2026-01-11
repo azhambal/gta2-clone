@@ -1,135 +1,203 @@
-import { defineComponent, Types } from 'bitecs';
+/**
+ * World components definitions for bitECS 0.4.0
+ * Components are plain objects with arrays for Structure of Arrays (SoA) pattern.
+ */
 
 // Transform components
-export const Position = defineComponent({
-  x: Types.f32,
-  y: Types.f32,
-  z: Types.f32,
-});
-
-export const Velocity = defineComponent({
-  x: Types.f32,
-  y: Types.f32,
-  z: Types.f32,
-});
-
-export const Rotation = defineComponent({
-  angle: Types.f32,
-});
-
-export const Scale = defineComponent({
-  x: Types.f32,
-  y: Types.f32,
-});
+export const Position: { x: number[]; y: number[]; z: number[] } = { x: [], y: [], z: [] };
+export const Velocity: { x: number[]; y: number[]; z: number[] } = { x: [], y: [], z: [] };
+export const Rotation: { angle: number[] } = { angle: [] };
+export const Scale: { x: number[]; y: number[] } = { x: [], y: [] };
 
 // Sprite components
-export const SpriteComponent = defineComponent({
-  textureId: Types.ui32,
-  frame: Types.ui32,
-  width: Types.f32,
-  height: Types.f32,
-  anchorX: Types.f32,
-  anchorY: Types.f32,
-  visible: Types.ui8,
-  tint: Types.ui32,
-});
+export const SpriteComponent: {
+  textureId: number[];
+  frame: number[];
+  width: number[];
+  height: number[];
+  anchorX: number[];
+  anchorY: number[];
+  visible: number[];
+  tint: number[];
+} = {
+  textureId: [],
+  frame: [],
+  width: [],
+  height: [],
+  anchorX: [],
+  anchorY: [],
+  visible: [],
+  tint: [],
+};
 
-export const AnimationComponent = defineComponent({
-  startFrame: Types.ui32,
-  endFrame: Types.ui32,
-  speed: Types.f32,
-  timer: Types.f32,
-  loop: Types.ui8,
-  playing: Types.ui8,
-});
+export const AnimationComponent: {
+  startFrame: number[];
+  endFrame: number[];
+  speed: number[];
+  timer: number[];
+  loop: number[];
+  playing: number[];
+} = {
+  startFrame: [],
+  endFrame: [],
+  speed: [],
+  timer: [],
+  loop: [],
+  playing: [],
+};
 
 // Physics components
-export const Collider = defineComponent({
-  type: Types.ui8,
-  width: Types.f32,
-  height: Types.f32,
-  radius: Types.f32,
-  offsetX: Types.f32,
-  offsetY: Types.f32,
-  layer: Types.ui32,
-  mask: Types.ui32,
-});
+export const Collider: {
+  type: number[];
+  width: number[];
+  height: number[];
+  radius: number[];
+  offsetX: number[];
+  offsetY: number[];
+  layer: number[];
+  mask: number[];
+} = {
+  type: [],
+  width: [],
+  height: [],
+  radius: [],
+  offsetX: [],
+  offsetY: [],
+  layer: [],
+  mask: [],
+};
 
-export const RigidBody = defineComponent({
-  bodyId: Types.ui32,
-  mass: Types.f32,
-  friction: Types.f32,
-  restitution: Types.f32,
-  isStatic: Types.ui8,
-  isSensor: Types.ui8,
-});
+export const RigidBody: {
+  bodyId: number[];
+  mass: number[];
+  friction: number[];
+  restitution: number[];
+  isStatic: number[];
+  isSensor: number[];
+} = {
+  bodyId: [],
+  mass: [],
+  friction: [],
+  restitution: [],
+  isStatic: [],
+  isSensor: [],
+};
 
 // Health components
-export const Health = defineComponent({
-  current: Types.f32,
-  max: Types.f32,
-  invulnerable: Types.ui8,
-  invulnerableTimer: Types.f32,
-});
+export const Health: {
+  current: number[];
+  max: number[];
+  invulnerable: number[];
+  invulnerableTimer: number[];
+} = {
+  current: [],
+  max: [],
+  invulnerable: [],
+  invulnerableTimer: [],
+};
 
-export const Damage = defineComponent({
-  amount: Types.f32,
-  type: Types.ui8,
-  sourceEntity: Types.eid,
-});
+export const Damage: {
+  amount: number[];
+  type: number[];
+  sourceEntity: number[];
+} = {
+  amount: [],
+  type: [],
+  sourceEntity: [],
+};
 
-// Tag components (Presence means component exists)
-export const PlayerControlled = defineComponent();
-export const Vehicle = defineComponent({
-  type: Types.ui8,
-  damage: Types.f32,
-  fuel: Types.f32,
-});
-export const Pedestrian = defineComponent({
-  type: Types.ui8,
-  mood: Types.ui8,
-});
-export const Driver = defineComponent({
-  vehicleEntity: Types.eid,
-});
-export const VehicleOccupants = defineComponent({
-  driver: Types.eid,
-  passenger1: Types.eid,
-  passenger2: Types.eid,
-  passenger3: Types.eid,
-  maxSeats: Types.ui8,
-});
+// Tag components (boolean arrays - presence means component exists)
+export const PlayerControlled: number[] = [];
+export const Vehicle: {
+  type: number[];
+  damage: number[];
+  fuel: number[];
+} = {
+  type: [],
+  damage: [],
+  fuel: [],
+};
+export const Pedestrian: {
+  type: number[];
+  mood: number[];
+} = {
+  type: [],
+  mood: [],
+};
+export const Driver: {
+  vehicleEntity: number[];
+} = {
+  vehicleEntity: [],
+};
+export const VehicleOccupants: {
+  driver: number[];
+  passenger1: number[];
+  passenger2: number[];
+  passenger3: number[];
+  maxSeats: number[];
+} = {
+  driver: [],
+  passenger1: [],
+  passenger2: [],
+  passenger3: [],
+  maxSeats: [],
+};
 
 // Vehicle physics component
-export const VehiclePhysics = defineComponent({
-  mass: Types.f32,
-  maxSpeed: Types.f32,
-  acceleration: Types.f32,
-  braking: Types.f32,
-  handling: Types.f32,
-  grip: Types.f32,
-  throttle: Types.f32,
-  steering: Types.f32,
-  speed: Types.f32,
-  angularVelocity: Types.f32,
-  drifting: Types.ui8,
-});
+export const VehiclePhysics: {
+  mass: number[];
+  maxSpeed: number[];
+  acceleration: number[];
+  braking: number[];
+  handling: number[];
+  grip: number[];
+  throttle: number[];
+  steering: number[];
+  speed: number[];
+  angularVelocity: number[];
+  drifting: number[];
+} = {
+  mass: [],
+  maxSpeed: [],
+  acceleration: [],
+  braking: [],
+  handling: [],
+  grip: [],
+  throttle: [],
+  steering: [],
+  speed: [],
+  angularVelocity: [],
+  drifting: [],
+};
 
 // AI components
-export const PedestrianAI = defineComponent({
-  state: Types.ui8,
-  previousState: Types.ui8,
-  targetX: Types.f32,
-  targetY: Types.f32,
-  hasTarget: Types.ui8,
-  walkSpeed: Types.f32,
-  runSpeed: Types.f32,
-  fearLevel: Types.f32,
-  sightRange: Types.f32,
-  stateTimer: Types.f32,
-  thinkTimer: Types.f32,
-  pathCooldown: Types.f32,
-});
+export const PedestrianAI: {
+  state: number[];
+  previousState: number[];
+  targetX: number[];
+  targetY: number[];
+  hasTarget: number[];
+  walkSpeed: number[];
+  runSpeed: number[];
+  fearLevel: number[];
+  sightRange: number[];
+  stateTimer: number[];
+  thinkTimer: number[];
+  pathCooldown: number[];
+} = {
+  state: [],
+  previousState: [],
+  targetX: [],
+  targetY: [],
+  hasTarget: [],
+  walkSpeed: [],
+  runSpeed: [],
+  fearLevel: [],
+  sightRange: [],
+  stateTimer: [],
+  thinkTimer: [],
+  pathCooldown: [],
+};
 
 /**
  * Состояния AI пешехода (FSM)
@@ -144,23 +212,35 @@ export enum PedestrianState {
 }
 
 // Traffic AI component
-export const TrafficAI = defineComponent({
-  state: Types.ui8,
-  previousState: Types.ui8,
+export const TrafficAI: {
+  state: number[];
+  previousState: number[];
   // Route navigation
-  currentWaypointId: Types.ui32,
-  routeId: Types.ui32,
+  currentWaypointId: number[];
+  routeId: number[];
   // Parameters
-  desiredSpeed: Types.f32,
-  aggressiveness: Types.f32,
-  patience: Types.f32,
+  desiredSpeed: number[];
+  aggressiveness: number[];
+  patience: number[];
   // Perception
-  distanceToNext: Types.f32,
-  hasObstacle: Types.ui8,
+  distanceToNext: number[];
+  hasObstacle: number[];
   // State timers
-  stateTimer: Types.f32,
-  waitTimer: Types.f32,
-});
+  stateTimer: number[];
+  waitTimer: number[];
+} = {
+  state: [],
+  previousState: [],
+  currentWaypointId: [],
+  routeId: [],
+  desiredSpeed: [],
+  aggressiveness: [],
+  patience: [],
+  distanceToNext: [],
+  hasObstacle: [],
+  stateTimer: [],
+  waitTimer: [],
+};
 
 /**
  * Состояния AI трафика (FSM)
@@ -174,8 +254,7 @@ export enum TrafficState {
   FLEEING = 5,
 }
 
-
-// Export all components for createWorld
+// Export all components for reference
 export const allComponents = {
   Position,
   Velocity,

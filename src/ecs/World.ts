@@ -45,7 +45,7 @@ interface GameWorldComponents {
 }
 
 // Define our World type with components
-export type GameWorld = BaseWorld<{ components: GameWorldComponents }>;
+export type GameWorld = BaseWorld<GameWorldComponents>;
 
 /**
  * Создание и управление ECS миром
@@ -54,28 +54,9 @@ export class ECSWorld {
   private world: GameWorld;
 
   constructor() {
-    this.world = createWorld({
-      components: {
-        Position,
-        Velocity,
-        Rotation,
-        Scale,
-        SpriteComponent,
-        AnimationComponent,
-        Collider,
-        RigidBody,
-        Health,
-        Damage,
-        PlayerControlled,
-        Vehicle,
-        Pedestrian,
-        Driver,
-        VehicleOccupants,
-        VehiclePhysics,
-        PedestrianAI,
-        TrafficAI,
-      },
-    }) as GameWorld;
+    // In bitECS 0.4.0, world creation is simplified
+    // Components are accessed directly, no need to register them
+    this.world = createWorld() as GameWorld;
   }
 
   /**

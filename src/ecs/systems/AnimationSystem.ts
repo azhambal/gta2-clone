@@ -1,12 +1,12 @@
 import { query } from 'bitecs';
 import type { GameWorld } from '../World.js';
+import { SpriteComponent, AnimationComponent } from '../components/index.js';
 
 /**
  * Система анимации — обновляет кадры спрайтов
  */
 export const createAnimationSystem = () => {
   return (world: GameWorld, dt: number) => {
-    const { SpriteComponent, AnimationComponent } = world.components;
     const entities = query(world, [SpriteComponent, AnimationComponent]);
 
     for (const eid of entities) {
