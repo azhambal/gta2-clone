@@ -7,7 +7,7 @@ import { Renderer } from './rendering/Renderer.js';
 import { Camera } from './rendering/Camera.js';
 import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
-import { InputManager } from './input/InputManager.js';
+import { InputManager, GameAction } from './input/index.js';
 
 /**
  * Главный класс игры
@@ -118,7 +118,7 @@ export class Game {
   private update(_dt: number): void {
     Debug.updateFps(this.engine.getFps());
 
-    // Управление камерой
+    // Управление камерой через Actions
     const cameraSpeed = 5;
     const movement = this.inputManager.getMovementVector();
 
@@ -126,12 +126,24 @@ export class Game {
       this.camera.move(movement.x * cameraSpeed, movement.y * cameraSpeed);
     }
 
-    // Зум (Q/E или +/-)
-    if (this.inputManager.isKeyDown('q') || this.inputManager.isKeyDown('-')) {
+    // Зум через Actions
+    if (this.inputManager.isActionDown(GameAction.ZOOM_IN)) {
+      this.camera.zoomTo(this.camera.getZoom() + 0.02);
+    }
+    if (this.inputManager.isActionDown(GameAction.ZOOM_OUT)) {
       this.camera.zoomTo(this.camera.getZoom() - 0.02);
     }
-    if (this.inputManager.isKeyDown('e') || this.inputManager.isKeyDown('=')) {
-      this.camera.zoomTo(this.camera.getZoom() + 0.02);
+
+    // Зум колёсиком мыши
+    const wheel = this.inputManager.getMouseWheel();
+    if (wheel !== 0) {
+      this.camera.zoomTo(this.camera.getZoom() - wheel * 0.1);
+    }
+
+    // Пауза
+    if (this.inputManager.isActionJustPressed(GameAction.PAUSE)) {
+      Debug.log('Game', 'Pause toggled');
+      // Пауза будет реализована позже
     }
 
     // Обновление камеры
