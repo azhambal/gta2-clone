@@ -16,7 +16,8 @@ import { createVehicleInteractionSystem } from './ecs/systems/VehicleInteraction
 import { createSurfaceEffectSystem } from './ecs/systems/SurfaceEffectSystem.js';
 import { VehicleType } from './data/VehicleDefinitions.js';
 import { audioManager, preloadSounds } from './audio/index.js';
-import { createPedestrianAISystem } from './ai/index.js';
+import { createPedestrianAISystem, generateTrafficNetwork, TrafficNetwork } from './ai/index.js';
+import { createTrafficAISystem } from './ecs/systems/TrafficAISystem.js';
 import { SpawnManager } from './gameplay/index.js';
 import { DistrictManager, createRectDistrictConfig } from './world/index.js';
 import { getDistrictIndicator } from './ui/index.js';
@@ -35,6 +36,7 @@ export class Game {
   private physicsManager!: PhysicsManager;
   private spawnManager!: SpawnManager;
   private districtManager!: DistrictManager;
+  private trafficNetwork!: TrafficNetwork;
   private playerEntity: number = 0;
 
   constructor(config: Partial<GameConfig> = {}) {
@@ -122,8 +124,14 @@ export class Game {
     this.systemManager.register('vehiclePhysics', createVehiclePhysicsSystem(this.physicsManager, this.currentMap), 5);
     // SurfaceEffectSystem для спавна частиц поверхностей (после vehiclePhysics для получения скорости)
     this.systemManager.register('surfaceEffects', createSurfaceEffectSystem(this.currentMap), 6);
+    // Инициализация сети трафика
+    this.trafficNetwork = generateTrafficNetwork(this.currentMap);
+    Debug.log('Game', 'Traffic network generated');
+
     // PedestrianAISystem для управления NPC пешеходами
     this.systemManager.register('pedestrianAI', createPedestrianAISystem(this.currentMap), 7);
+    // TrafficAISystem для управления NPC машинами
+    this.systemManager.register('trafficAI', createTrafficAISystem(this.trafficNetwork), 8);
     this.systemManager.register('movement', movementSystem, 10);
     // Регистрация системы коллизий после movement
     this.systemManager.register('mapCollision', createMapCollisionSystem(this.currentMap), 15);

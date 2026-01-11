@@ -1,6 +1,6 @@
 import { Chunk } from './Chunk.js';
 import { BlockData } from './Block.js';
-import { BlockType } from './BlockTypes.js';
+import { BlockType, SurfaceType } from './BlockTypes.js';
 import { GAME_CONSTANTS } from '../core/Types.js';
 
 const { CHUNK_SIZE, MAP_DEPTH, BLOCK_SIZE } = GAME_CONSTANTS;
@@ -178,38 +178,36 @@ export class GameMap {
    */
   private getSurfaceFromBlock(block: BlockData): number {
     const type = block.getType();
-    const { SurfaceType: BlockSurfaceType } = require('./BlockTypes.js');
-
     // Маппинг BlockType на SurfaceType
     // Значения SurfaceType из BlockTypes: NONE=0, ROAD=1, GRASS=2, DIRT=3, ICE=4, OIL=5, WATER=6, SAND=7, MUD=8
     switch (type) {
       case 0: // AIR
-        return BlockSurfaceType.NONE;
+        return SurfaceType.NONE;
       case 10: // ROAD
       case 11: // ROAD_LINE_H
       case 12: // ROAD_LINE_V
       case 13: // CROSSWALK
-        return BlockSurfaceType.ROAD;
+        return SurfaceType.ROAD;
       case 14: // SIDEWALK
-        return BlockSurfaceType.ROAD; // Тротуар ведёт себя как дорога
+        return SurfaceType.ROAD; // Тротуар ведёт себя как дорога
       case 20: // GRASS
-        return BlockSurfaceType.GRASS;
+        return SurfaceType.GRASS;
       case 21: // DIRT
-        return BlockSurfaceType.DIRT;
+        return SurfaceType.DIRT;
       case 22: // SAND
-        return BlockSurfaceType.SAND;
+        return SurfaceType.SAND;
       case 40: // WATER
       case 41: // DEEP_WATER
-        return BlockSurfaceType.WATER;
+        return SurfaceType.WATER;
       case 60: // OIL
-        return BlockSurfaceType.OIL;
+        return SurfaceType.OIL;
       case 61: // ICE
-        return BlockSurfaceType.ICE;
+        return SurfaceType.ICE;
       case 62: // MUD
-        return BlockSurfaceType.MUD;
+        return SurfaceType.MUD;
       default:
         // По умолчанию - твёрдая поверхность как дорога
-        return BlockSurfaceType.ROAD;
+        return SurfaceType.ROAD;
     }
   }
 }

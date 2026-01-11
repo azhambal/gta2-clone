@@ -1,26 +1,28 @@
 import type { GameWorld } from './World.js';
+import { Debug } from '../utils/Debug.js';
 
 type SystemFunction = (world: GameWorld, dt: number) => GameWorld;
+
+interface SystemEntry {
+  name: string;
+  system: SystemFunction;
+  priority: number;
+}
 
 /**
  * Менеджер систем — управляет порядком выполнения
  */
 export class SystemManager {
-  private systems: Map<string, SystemFunction> = new Map();
+  private systems: Map<string, SystemEntry> = new Map();
   private executionOrder: string[] = [];
 
   /**
    * Регистрация системы
    */
-  public register(name: string, system: SystemFunction, priority?: number): void {
-    this.systems.set(name, system);
-
-    // Добавляем в порядок выполнения
-    if (priority !== undefined) {
-      this.executionOrder.splice(priority, 0, name);
-    } else {
-      this.executionOrder.push(name);
-    }
+  public register(name: string, system: SystemFunction, priority: number = 0): void {
+    this.systems.set(name, { name, system, priority });
+    this.rebuildExecutionOrder();
+    Debug.log('SystemManager', `Registered system: ${name} (priority: ${priority})`);
   }
 
   /**
@@ -28,7 +30,16 @@ export class SystemManager {
    */
   public unregister(name: string): void {
     this.systems.delete(name);
-    this.executionOrder = this.executionOrder.filter(n => n !== name);
+    this.rebuildExecutionOrder();
+  }
+
+  /**
+   * Пересборка порядка выполнения
+   */
+  private rebuildExecutionOrder(): void {
+    this.executionOrder = Array.from(this.systems.values())
+      .sort((a, b) => a.priority - b.priority)
+      .map(entry => entry.name);
   }
 
   /**
@@ -36,9 +47,9 @@ export class SystemManager {
    */
   public update(world: GameWorld, dt: number): void {
     for (const name of this.executionOrder) {
-      const system = this.systems.get(name);
-      if (system) {
-        system(world, dt);
+      const entry = this.systems.get(name);
+      if (entry) {
+        entry.system(world, dt);
       }
     }
   }
