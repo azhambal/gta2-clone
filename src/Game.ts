@@ -1,8 +1,10 @@
 import { Engine } from './core/Engine.js';
 import { eventBus } from './core/EventBus.js';
 import { Debug } from './utils/Debug.js';
+import { TextureGenerator } from './utils/TextureGenerator.js';
 import type { GameConfig } from './core/Types.js';
 import { Renderer } from './rendering/Renderer.js';
+import { Sprite, Texture } from 'pixi.js';
 
 /**
  * Главный класс игры
@@ -11,6 +13,7 @@ export class Game {
   private engine: Engine;
   private renderer: Renderer;
   private config: GameConfig;
+  private textureGenerator!: TextureGenerator;
 
   constructor(config: Partial<GameConfig> = {}) {
     this.config = {
@@ -47,6 +50,16 @@ export class Game {
     // Инициализация рендерера
     await this.renderer.init(this.config, container);
     Debug.log('Game', 'Renderer initialized');
+
+    // Генератор текстур для разработки
+    this.textureGenerator = new TextureGenerator(this.renderer.getApp());
+
+    // Генерация тестовых текстур
+    const testBlocks = this.textureGenerator.generateBlockSet();
+    Debug.log('Game', `Generated ${testBlocks.size} test block textures`);
+
+    // Демонстрация текстур
+    this.showTestTextures(testBlocks);
 
     // Обработка ресайза
     window.addEventListener('resize', this.handleResize.bind(this));
@@ -93,6 +106,36 @@ export class Game {
     this.renderer.beginFrame();
     // Рендеринг объектов будет здесь
     this.renderer.endFrame();
+  }
+
+  /**
+   * Отображение тестовых текстур
+   */
+  private showTestTextures(blocks: Map<string, Texture>): void {
+    const container = this.renderer.getGameContainer();
+
+    let x = 50;
+    blocks.forEach((texture) => {
+      const sprite = new Sprite(texture);
+      sprite.x = x;
+      sprite.y = 50;
+      container.addChild(sprite);
+      x += 80;
+    });
+
+    // Добавим персонажа
+    const characterTexture = this.textureGenerator.generateCharacterTexture();
+    const character = new Sprite(characterTexture);
+    character.x = 50;
+    character.y = 150;
+    container.addChild(character);
+
+    // Добавим машину
+    const vehicleTexture = this.textureGenerator.generateVehicleTexture();
+    const vehicle = new Sprite(vehicleTexture);
+    vehicle.x = 150;
+    vehicle.y = 140;
+    container.addChild(vehicle);
   }
 
   /**

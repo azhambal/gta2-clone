@@ -1,1 +1,2 @@
-export { Debug } from './Debug';
+export { Debug } from './Debug.js';
+export { TextureGenerator } from './TextureGenerator.js';
