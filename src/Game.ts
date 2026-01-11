@@ -8,7 +8,7 @@ import { Camera } from './rendering/Camera.js';
 import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
 import { InputManager, GameAction } from './input/index.js';
-import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem } from './ecs/index.js';
+import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem, createMapCollisionSystem } from './ecs/index.js';
 
 /**
  * Главный класс игры
@@ -91,8 +91,10 @@ export class Game {
     // Инициализация ECS
     this.systemManager = new SystemManager();
     this.systemManager.register('playerInput', createPlayerInputSystem(this.inputManager), 0);
-    this.systemManager.register('movement', movementSystem, 1);
-    this.systemManager.register('animation', animationSystem, 2);
+    this.systemManager.register('movement', movementSystem, 10);
+    // Регистрация системы коллизий после movement
+    this.systemManager.register('mapCollision', createMapCollisionSystem(this.currentMap), 15);
+    this.systemManager.register('animation', animationSystem, 20);
 
     // Создание тестового игрока
     const world = ecsWorld.getWorld();
