@@ -17,6 +17,7 @@ import { createSurfaceEffectSystem } from './ecs/systems/SurfaceEffectSystem.js'
 import { VehicleType } from './data/VehicleDefinitions.js';
 import { audioManager, preloadSounds } from './audio/index.js';
 import { createPedestrianAISystem } from './ai/index.js';
+import { SpawnManager } from './gameplay/index.js';
 
 /**
  * Главный класс игры
@@ -30,6 +31,7 @@ export class Game {
   private inputManager!: InputManager;
   private systemManager!: SystemManager;
   private physicsManager!: PhysicsManager;
+  private spawnManager!: SpawnManager;
   private playerEntity: number = 0;
 
   constructor(config: Partial<GameConfig> = {}) {
@@ -130,6 +132,17 @@ export class Game {
     const world = ecsWorld.getWorld();
     this.playerEntity = EntityFactory.createPlayer(world, worldWidth / 2, worldHeight / 2);
     Debug.log('Game', `Player entity created: ${this.playerEntity}`);
+
+    // Инициализация SpawnManager
+    this.spawnManager = new SpawnManager(world, this.currentMap, this.physicsManager, {
+      pedestrianDensity: 0.3,
+      vehicleDensity: 0.2,
+      spawnRadius: 800,
+      despawnRadius: 1200,
+      maxPedestrians: 30,
+      maxVehicles: 15,
+    });
+    Debug.log('Game', 'SpawnManager initialized');
 
     // Создание тестовых машин разных типов
     const vehicle1 = EntityFactory.createVehicle(world, worldWidth / 2 - 100, worldHeight / 2, VehicleType.CAR_SPORT, this.physicsManager);
@@ -240,6 +253,14 @@ export class Game {
 
     // Обновление ECS систем
     this.systemManager.update(world, dt);
+
+    // Обновление SpawnManager (спавн/деспавн сущностей)
+    if (this.playerEntity > 0) {
+      const { Position } = world.components;
+      const playerX = Position.x[this.playerEntity] ?? 0;
+      const playerY = Position.y[this.playerEntity] ?? 0;
+      this.spawnManager.update(playerX, playerY, dt);
+    }
 
     // Обновление физики
     this.physicsManager.update(dt);
