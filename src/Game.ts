@@ -8,6 +8,7 @@ import { Camera } from './rendering/Camera.js';
 import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
 import { InputManager, GameAction } from './input/index.js';
+import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem } from './ecs/index.js';
 
 /**
  * Главный класс игры
@@ -19,6 +20,8 @@ export class Game {
   private currentMap: GameMap | null = null;
   private camera!: Camera;
   private inputManager!: InputManager;
+  private systemManager!: SystemManager;
+  private playerEntity: number = 0;
 
   constructor(config: Partial<GameConfig> = {}) {
     this.config = {
@@ -84,6 +87,16 @@ export class Game {
 
     // Инициализация ввода
     this.inputManager = new InputManager();
+
+    // Инициализация ECS
+    this.systemManager = new SystemManager();
+    this.systemManager.register('movement', movementSystem, 0);
+    this.systemManager.register('animation', animationSystem, 1);
+
+    // Создание тестового игрока
+    const world = ecsWorld.getWorld();
+    this.playerEntity = EntityFactory.createPlayer(world, worldWidth / 2, worldHeight / 2);
+    Debug.log('Game', `Player entity created: ${this.playerEntity}`);
 
     // Передача карты рендереру
     this.renderer.setMap(this.currentMap);
@@ -163,8 +176,10 @@ export class Game {
   /**
    * Фиксированное обновление (физика)
    */
-  private fixedUpdate(_dt: number): void {
-    // Физика и ECS системы
+  private fixedUpdate(dt: number): void {
+    // Обновление ECS систем
+    const world = ecsWorld.getWorld();
+    this.systemManager.update(world, dt);
   }
 
   /**

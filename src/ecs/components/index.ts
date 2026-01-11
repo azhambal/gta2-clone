@@ -1,0 +1,19 @@
+// Re-export all components from Transform.ts (which now contains all components)
+export {
+  Position,
+  Velocity,
+  Rotation,
+  Scale,
+  SpriteComponent,
+  AnimationComponent,
+  Collider,
+  RigidBody,
+  Health,
+  Damage,
+  PlayerControlled,
+  Vehicle,
+  Pedestrian,
+  Driver,
+  VehicleOccupants,
+  allComponents,
+} from './Transform.js';
