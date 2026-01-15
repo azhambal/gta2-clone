@@ -24,7 +24,7 @@ import { createHealthSystem } from './ecs/systems/HealthSystem.js';
 import { createDebugRenderSystem, DebugMode as RenderDebugMode } from './ecs/systems/DebugRenderSystem.js';
 import { getDebugModeManager, DebugMode } from './debug/index.js';
 import { SpawnManager } from './gameplay/index.js';
-import { DistrictManager, createRectDistrictConfig } from './world/index.js';
+import { DistrictManager, createRectDistrictConfig, BlockType } from './world/index.js';
 import { getDistrictIndicator, DebugOverlay } from './ui/index.js';
 import { Position, Vehicle, TrafficAI, Rotation } from './ecs/components/index.js';
 
@@ -268,16 +268,32 @@ export class Game {
     // Создание тестовых NPC пешеходов
     const pedestrianCount = 20;
     const pedestrians: number[] = [];
-    for (let i = 0; i < pedestrianCount; i++) {
-      const angle = (i / pedestrianCount) * Math.PI * 2;
+    const walkableTypes = new Set([
+      BlockType.SIDEWALK, BlockType.ROAD, BlockType.ROAD_LINE_H, BlockType.ROAD_LINE_V,
+      BlockType.CROSSWALK, BlockType.GRASS, BlockType.DIRT, BlockType.SAND,
+    ]);
+
+    let attempts = 0;
+    const maxAttempts = pedestrianCount * 10; // Avoid infinite loop
+    while (pedestrians.length < pedestrianCount && attempts < maxAttempts) {
+      attempts++;
+      const angle = Math.random() * Math.PI * 2;
       const radius = 200 + Math.random() * 300;
       const pedX = worldWidth / 2 + Math.cos(angle) * radius;
       const pedY = worldHeight / 2 + Math.sin(angle) * radius;
+
+      // Check if the position is walkable
+      const blockPos = this.currentMap.worldToBlock(pedX, pedY);
+      const block = this.currentMap.getBlock(blockPos.x, blockPos.y, 0);
+      if (!walkableTypes.has(block.getType())) {
+        continue; // Skip non-walkable positions
+      }
+
       const pedType = Math.floor(Math.random() * 3); // 0-2 разные типы пешеходов
       const ped = EntityFactory.createPedestrian(world, pedX, pedY, pedType);
       pedestrians.push(ped);
     }
-    Debug.log('Game', `Test pedestrians created: ${pedestrians.length} NPCs`);
+    Debug.log('Game', `Test pedestrians created: ${pedestrians.length} NPCs (${attempts} attempts)`);
 
     // Передача карты рендереру
     this.renderer.setMap(this.currentMap);

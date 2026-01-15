@@ -1,4 +1,4 @@
-import { query } from 'bitecs';
+import { query, hasComponent } from 'bitecs';
 import type { GameWorld } from '../ecs/World.js';
 import type { GameMap } from '../world/GameMap.js';
 import { Pathfinder } from './Pathfinding.js';
@@ -23,7 +23,7 @@ export const createPedestrianAISystem = (gameMap: GameMap) => {
 
     for (const eid of entities) {
       // Пропускаем игрока (проверяем наличие тега PlayerControlled)
-      if (eid in PlayerControlled) {continue;}
+      if (hasComponent(world, eid, PlayerControlled)) {continue;}
 
       // Обновление таймеров
       PedestrianAI.stateTimer[eid] -= deltaSeconds;

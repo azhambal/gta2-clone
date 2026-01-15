@@ -30,7 +30,7 @@ export class BlockRegistry {
       id: BlockType.ROAD,
       name: 'Road',
       textures: { top: 1, bottom: 1, north: 2, south: 2, east: 2, west: 2 },
-      collision: CollisionType.SOLID,
+      collision: CollisionType.NONE,
       surface: SurfaceType.ROAD,
       flags: BlockFlags.NONE,
     });
@@ -40,7 +40,7 @@ export class BlockRegistry {
       id: BlockType.SIDEWALK,
       name: 'Sidewalk',
       textures: { top: 3, bottom: 3, north: 4, south: 4, east: 4, west: 4 },
-      collision: CollisionType.SOLID,
+      collision: CollisionType.NONE,
       surface: SurfaceType.ROAD,
       flags: BlockFlags.NONE,
     });
@@ -50,7 +50,7 @@ export class BlockRegistry {
       id: BlockType.GRASS,
       name: 'Grass',
       textures: { top: 5, bottom: 6, north: 6, south: 6, east: 6, west: 6 },
-      collision: CollisionType.SOLID,
+      collision: CollisionType.NONE,
       surface: SurfaceType.GRASS,
       flags: BlockFlags.NONE,
     });
