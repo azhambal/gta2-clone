@@ -34,7 +34,7 @@ const DEFAULT_PHYSICS = {
  */
 export const createVehiclePhysicsSystem = (
   physicsManager: PhysicsManager | null = null,
-  gameMap: GameMap | null = null
+  gameMap: GameMap | null = null,
 ) => {
   return (world: GameWorld, dt: number) => {
     const deltaSeconds = dt / 1000;

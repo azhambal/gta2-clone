@@ -3,6 +3,7 @@ import type { GameConfig } from '../core/Types.js';
 import { MapRenderer } from './MapRenderer.js';
 import { EntityRenderer } from './EntityRenderer.js';
 import { GameMap } from '../world/GameMap.js';
+import type { GameWorld } from '../ecs/World.js';
 
 /**
  * Главный рендерер на основе PixiJS
@@ -11,15 +12,18 @@ export class Renderer {
   private app: Application;
   private gameContainer: Container;  // Игровой мир
   private uiContainer: Container;    // UI поверх игры
+  private debugContainer: Container; // Отладочная визуализация
 
   // Рендереры
   private mapRenderer: MapRenderer | null = null;
   private entityRenderer: EntityRenderer | null = null;
+  private debugRenderSystem: ((world: GameWorld) => GameWorld) | null = null;
 
   constructor() {
     this.app = new Application();
     this.gameContainer = new Container();
     this.uiContainer = new Container();
+    this.debugContainer = new Container();
   }
 
   /**
@@ -41,6 +45,7 @@ export class Renderer {
 
     // Настройка слоёв
     this.app.stage.addChild(this.gameContainer);
+    this.app.stage.addChild(this.debugContainer);
     this.app.stage.addChild(this.uiContainer);
 
     // Инициализация MapRenderer
@@ -60,9 +65,27 @@ export class Renderer {
   /**
    * Обновление рендереров
    */
-  public update(): void {
+  public update(world?: GameWorld): void {
     this.mapRenderer?.update();
     this.entityRenderer?.update();
+    // Update debug render system if world is provided
+    if (world && this.debugRenderSystem) {
+      this.debugRenderSystem(world);
+    }
+  }
+
+  /**
+   * Set the debug render system
+   */
+  public setDebugRenderSystem(system: ((world: GameWorld) => GameWorld) | null): void {
+    this.debugRenderSystem = system;
+  }
+
+  /**
+   * Get the debug container
+   */
+  public getDebugContainer(): Container {
+    return this.debugContainer;
   }
 
   /**

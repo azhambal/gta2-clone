@@ -64,7 +64,7 @@ export class MapGenerator {
       roadX - 5, roadY,     // Начало (слева от дороги)
       roadX + 5, roadY,     // Конец (справа от дороги)
       1,                    // Высота моста (Z = 1)
-      true                  // Горизонтальный мост
+      true,                  // Горизонтальный мост
     );
 
     return map;
@@ -88,7 +88,7 @@ export class MapGenerator {
     endX: number,
     endY: number,
     heightZ: number,
-    horizontal: boolean
+    horizontal: boolean,
   ): void {
     // Нормализация координат (начало всегда меньше конца)
     const x1 = Math.min(startX, endX);
@@ -167,7 +167,7 @@ export class MapGenerator {
     startY: number,
     length: number,
     heightZ: number,
-    horizontal: boolean
+    horizontal: boolean,
   ): void {
     const endX = horizontal ? startX + length : startX;
     const endY = horizontal ? startY : startY + length;
@@ -184,7 +184,7 @@ export class MapGenerator {
     y: number,
     width: number,
     height: number,
-    floors: number
+    floors: number,
   ): void {
     for (let z = 0; z < floors; z++) {
       for (let dy = 0; dy < height; dy++) {

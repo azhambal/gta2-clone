@@ -1,5 +1,4 @@
-import type { Vector2 } from '../core/Types.js';
-import { GAME_CONSTANTS } from '../core/Types.js';
+import { GAME_CONSTANTS, type Vector2 } from '../core/Types.js';
 
 const { BLOCK_SIZE } = GAME_CONSTANTS;
 

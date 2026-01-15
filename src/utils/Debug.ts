@@ -10,7 +10,7 @@ export class Debug {
    * Инициализация отладочного интерфейса
    */
   public static init(): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     // Создание панели отладки
     this.debugPanel = document.createElement('div');
@@ -50,7 +50,7 @@ export class Debug {
    */
   public static log(category: string, message: string): void {
     if (this.isEnabled) {
-      console.log(`[${category}] ${message}`);
+      console.warn(`[${category}] ${message}`);
     }
   }
 

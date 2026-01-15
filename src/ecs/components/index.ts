@@ -20,5 +20,11 @@ export {
   PedestrianState,
   TrafficAI,
   TrafficState,
+  Weapon,
+  Projectile,
+  Explosion,
+  Inventory,
+  WeaponPickup,
+  WeaponType,
   allComponents,
 } from './Transform.js';

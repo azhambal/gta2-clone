@@ -51,7 +51,9 @@ export class AudioManager {
   /**
    * Загрузить звук из asset manifest
    */
-  public loadSounds(manifest: Record<string, string | string[] | { src: string | string[]; options?: SoundLoadOptions }>): void {
+  public loadSounds(
+    manifest: Record<string, string | string[] | { src: string | string[]; options?: SoundLoadOptions }>,
+  ): void {
     for (const [id, data] of Object.entries(manifest)) {
       if (typeof data === 'string' || Array.isArray(data)) {
         this.loadSound(id, data);
@@ -76,7 +78,9 @@ export class AudioManager {
    * @returns soundId - ID экземпляра звука (для управления)
    */
   public playSound(id: string, options?: PlayOptions): number {
-    if (!this.enabled) return -1;
+    if (!this.enabled) {
+      return -1;
+    }
 
     const sound = this.sounds.get(id);
     if (!sound) {
@@ -85,7 +89,9 @@ export class AudioManager {
     }
 
     const soundId = sound.play();
-    if (soundId === -1) return -1;
+    if (soundId === -1) {
+      return -1;
+    }
 
     if (options?.volume !== undefined) {
       sound.volume(options.volume * this.sfxVolume * this.masterVolume, soundId);
@@ -107,9 +113,11 @@ export class AudioManager {
     y: number,
     listenerX: number,
     listenerY: number,
-    options?: PlayOptions
+    options?: PlayOptions,
   ): number {
-    if (!this.enabled) return -1;
+    if (!this.enabled) {
+      return -1;
+    }
 
     const sound = this.sounds.get(id);
     if (!sound) {
@@ -124,13 +132,17 @@ export class AudioManager {
 
     // Volume attenuation based on distance
     const volume = Math.max(0, 1 - distance / maxDistance);
-    if (volume === 0) return -1;
+    if (volume === 0) {
+      return -1;
+    }
 
     // Stereo panning
     const pan = Math.max(-1, Math.min(1, dx / 500));
 
     const soundId = sound.play();
-    if (soundId === -1) return -1;
+    if (soundId === -1) {
+      return -1;
+    }
 
     sound.volume(volume * (options?.volume ?? 1) * this.sfxVolume * this.masterVolume, soundId);
     sound.stereo(pan, soundId);
@@ -181,7 +193,9 @@ export class AudioManager {
    * Воспроизвести спрайт звука
    */
   public playSprite(id: string, spriteName: string, options?: PlayOptions): number {
-    if (!this.enabled) return -1;
+    if (!this.enabled) {
+      return -1;
+    }
 
     const sound = this.sounds.get(id);
     if (!sound) {
@@ -190,7 +204,9 @@ export class AudioManager {
     }
 
     const soundId = sound.play(spriteName);
-    if (soundId === -1) return -1;
+    if (soundId === -1) {
+      return -1;
+    }
 
     if (options?.volume !== undefined) {
       sound.volume(options.volume * this.sfxVolume * this.masterVolume, soundId);
@@ -208,7 +224,9 @@ export class AudioManager {
    * Воспроизвести музыкальный трек
    */
   public playMusic(src: string, loop: boolean = true, fadeDuration: number = 1000): void {
-    if (!this.enabled) return;
+    if (!this.enabled) {
+      return;
+    }
 
     this.stopMusic();
 
@@ -228,7 +246,7 @@ export class AudioManager {
    * Остановить музыку с fade out
    */
   public stopMusic(fadeDuration: number = 1000): void {
-    if (!this.music) return;
+    if (!this.music) {return;}
 
     if (fadeDuration > 0) {
       const currentMusic = this.music;

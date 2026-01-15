@@ -76,7 +76,7 @@ export class Pathfinder {
     startY: number,
     endX: number,
     endY: number,
-    z: number = 0
+    z: number = 0,
   ): Vector2[] | null {
     // Проверяем кеш
     const cacheKey = this.getCacheKey(startX, startY, endX, endY, z);
@@ -119,7 +119,7 @@ export class Pathfinder {
     x: number,
     y: number,
     radius: number,
-    z: number = 0
+    z: number = 0,
   ): Vector2 | null {
     const attempts = 20;
 
@@ -152,7 +152,7 @@ export class Pathfinder {
     x: number,
     y: number,
     searchRadius: number,
-    z: number = 0
+    z: number = 0,
   ): Vector2 | null {
     const centerGrid = this.worldToGrid(x, y);
     const maxRadius = Math.ceil(searchRadius / this.gridScale);
@@ -206,7 +206,7 @@ export class Pathfinder {
     startY: number,
     endX: number,
     endY: number,
-    z: number
+    z: number,
   ): Vector2[] | null {
     const openSet = new PriorityQueue();
     const closedSet = new Set<string>();
@@ -231,7 +231,9 @@ export class Pathfinder {
       iterations++;
 
       const current = openSet.dequeue();
-      if (!current) break;
+      if (!current) {
+        break;
+      }
 
       const currentKey = `${current.x},${current.y},${current.z}`;
 
@@ -345,7 +347,7 @@ export class Pathfinder {
    */
   private findNodeInQueue(queue: PriorityQueue, node: PathNode): PathNode | null {
     return (queue as any).items.find(
-      (n: PathNode) => n.x === node.x && n.y === node.y && n.z === node.z
+      (n: PathNode) => n.x === node.x && n.y === node.y && n.z === node.z,
     ) ?? null;
   }
 
@@ -377,7 +379,7 @@ export class Pathfinder {
     startY: number,
     endX: number,
     endY: number,
-    z: number
+    z: number,
   ): string {
     const startGrid = this.worldToGrid(startX, startY);
     const endGrid = this.worldToGrid(endX, endY);
@@ -430,7 +432,7 @@ export function findDangersNear(
   _world: any,
   _x: number,
   _y: number,
-  _radius: number
+  _radius: number,
 ): Array<{ x: number; y: number; type: string }> | [] {
   // TODO: Реализовать поиск опасностей (взрывы, стрельба, машины)
   // Это будет интегрировано с системой событий

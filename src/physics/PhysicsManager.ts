@@ -81,7 +81,7 @@ export class PhysicsManager {
     y: number,
     width: number,
     height: number,
-    options: Matter.IBodyDefinition = {}
+    options: Matter.IBodyDefinition = {},
   ): Matter.Body {
     const body = Bodies.rectangle(x, y, width, height, {
       ...options,
@@ -104,7 +104,7 @@ export class PhysicsManager {
     x: number,
     y: number,
     radius: number,
-    options: Matter.IBodyDefinition = {}
+    options: Matter.IBodyDefinition = {},
   ): Matter.Body {
     const body = Bodies.circle(x, y, radius, {
       ...options,
@@ -127,7 +127,7 @@ export class PhysicsManager {
     y: number,
     width: number,
     height: number,
-    options: Matter.IBodyDefinition = {}
+    options: Matter.IBodyDefinition = {},
   ): Matter.Body {
     const body = Bodies.rectangle(x, y, width, height, {
       ...options,

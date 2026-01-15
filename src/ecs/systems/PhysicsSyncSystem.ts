@@ -13,7 +13,7 @@ export const createPhysicsSyncSystem = (physicsManager: PhysicsManager) => {
 
     for (const eid of entities) {
       const bodyId = RigidBody.bodyId[eid];
-      if (bodyId === 0) continue;
+      if (bodyId === 0) {continue;}
 
       // Получение позиции из физики
       const pos = physicsManager.getBodyPosition(eid);

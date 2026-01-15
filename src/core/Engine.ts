@@ -18,7 +18,9 @@ export class Engine {
   private fpsTime: number = 0;
   private currentFps: number = 0;
 
-  constructor() {}
+  constructor() {
+    // Инициализация игрового движка
+  }
 
   /**
    * Регистрация callback для обновления (каждый кадр)
@@ -45,7 +47,9 @@ export class Engine {
    * Запуск игрового цикла
    */
   public start(): void {
-    if (this.isRunning) return;
+    if (this.isRunning) {
+      return;
+    }
 
     this.isRunning = true;
     this.lastTime = performance.now();
@@ -74,7 +78,9 @@ export class Engine {
    * Главный игровой цикл
    */
   private loop = (currentTime: number): void => {
-    if (!this.isRunning) return;
+    if (!this.isRunning) {
+      return;
+    }
 
     requestAnimationFrame(this.loop);
 

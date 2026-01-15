@@ -5,8 +5,21 @@ import { blockRegistry } from '../../world/BlockRegistry.js';
 import { CollisionType } from '../../world/BlockTypes.js';
 import { GAME_CONSTANTS } from '../../core/Types.js';
 import { Position, Velocity, Collider } from '../components/index.js';
+import { eventBus } from '../../core/EventBus.js';
 
 const { BLOCK_SIZE } = GAME_CONSTANTS;
+
+/**
+ * Minimum penetration depth to trigger collision response
+ * Prevents jittering from floating-point precision issues
+ */
+const MIN_PENETRATION_THRESHOLD = 0.5;
+
+/**
+ * Position correction factor (0-1)
+ * Lower values provide smoother correction over multiple frames
+ */
+const POSITION_CORRECTION_FACTOR = 0.8;
 
 /**
  * Результат проверки коллизии
@@ -23,41 +36,42 @@ interface CollisionResult {
 
 /**
  * Создание системы коллизий с картой
+ *
+ * IMPORTANT: This system runs AFTER MovementSystem, so Position is already updated.
+ * We check if the CURRENT position (after movement) is colliding, and if so,
+ * push the entity out and stop velocity in the direction of the collision.
  */
 export const createMapCollisionSystem = (gameMap: GameMap) => {
-  return (world: GameWorld, dt: number) => {
+  return (world: GameWorld, _dt: number) => {
     const entities = query(world, [Position, Velocity, Collider]);
 
     for (const eid of entities) {
+      // Get CURRENT position (already updated by MovementSystem)
       const x = Position.x[eid];
       const y = Position.y[eid];
       const z = Math.floor(Position.z[eid]);
 
-      const vx = Velocity.x[eid];
-      const vy = Velocity.y[eid];
-
-      // Новая позиция после применения скорости
-      const newX = x + vx * (dt / 1000);
-      const newY = y + vy * (dt / 1000);
-
-      // Радиус коллайдера (Circle = type 2, Box = type 1)
+      // Get collider radius
       const colliderType = Collider.type[eid];
       const radius = colliderType === 2 ? Collider.radius[eid] : Collider.width[eid] / 2;
 
-      // Проверка коллизий по X
-      const collisionX = checkAxisCollision(gameMap, x, y, z, newX, y, radius);
-      if (collisionX.collided) {
-        // Остановка по X и корректировка позиции
-        Velocity.x[eid] = 0;
-        Position.x[eid] = x + collisionX.normalX * collisionX.penetration;
-      }
+      // Check if current position is colliding
+      const collisionResult = checkCurrentPositionCollision(gameMap, x, y, z, radius);
 
-      // Проверка коллизий по Y
-      const collisionY = checkAxisCollision(gameMap, x, y, z, x, newY, radius);
-      if (collisionY.collided) {
-        // Остановка по Y и корректировка позиции
-        Velocity.y[eid] = 0;
-        Position.y[eid] = y + collisionY.normalY * collisionY.penetration;
+      if (collisionResult.collided) {
+        // Apply collision response
+        applyCollisionResponse(eid, collisionResult);
+
+        // Emit collision event
+        eventBus.emit('collision:map', {
+          entity: eid,
+          blockX: collisionResult.blockX,
+          blockY: collisionResult.blockY,
+          blockZ: collisionResult.blockZ,
+          normalX: collisionResult.normalX,
+          normalY: collisionResult.normalY,
+          penetration: collisionResult.penetration,
+        });
       }
     }
 
@@ -66,16 +80,14 @@ export const createMapCollisionSystem = (gameMap: GameMap) => {
 };
 
 /**
- * Проверка коллизии по оси
+ * Check if the current position is colliding with the map
  */
-function checkAxisCollision(
+function checkCurrentPositionCollision(
   map: GameMap,
-  oldX: number,
-  oldY: number,
+  x: number,
+  y: number,
   z: number,
-  newX: number,
-  newY: number,
-  radius: number
+  radius: number,
 ): CollisionResult {
   const result: CollisionResult = {
     collided: false,
@@ -88,10 +100,10 @@ function checkAxisCollision(
   };
 
   // Определение блоков для проверки
-  const minBlockX = Math.floor((newX - radius) / BLOCK_SIZE);
-  const maxBlockX = Math.floor((newX + radius) / BLOCK_SIZE);
-  const minBlockY = Math.floor((newY - radius) / BLOCK_SIZE);
-  const maxBlockY = Math.floor((newY + radius) / BLOCK_SIZE);
+  const minBlockX = Math.floor((x - radius) / BLOCK_SIZE);
+  const maxBlockX = Math.floor((x + radius) / BLOCK_SIZE);
+  const minBlockY = Math.floor((y - radius) / BLOCK_SIZE);
+  const maxBlockY = Math.floor((y + radius) / BLOCK_SIZE);
 
   for (let bx = minBlockX; bx <= maxBlockX; bx++) {
     for (let by = minBlockY; by <= maxBlockY; by++) {
@@ -99,7 +111,6 @@ function checkAxisCollision(
       const blockDef = blockRegistry.get(block.getType());
 
       // Проверка только твёрдых блоков (SLOPE = 2 не блокирует движение)
-      // SOLID = 1 блокирует, SLOPE = 2 пропускается (обрабатывается в SlopeSystem)
       if (!blockDef || blockDef.collision !== CollisionType.SOLID) {
         continue;
       }
@@ -110,12 +121,12 @@ function checkAxisCollision(
       const blockTop = by * BLOCK_SIZE;
       const blockBottom = (by + 1) * BLOCK_SIZE;
 
-      // AABB vs Circle collision
-      const closestX = Math.max(blockLeft, Math.min(newX, blockRight));
-      const closestY = Math.max(blockTop, Math.min(newY, blockBottom));
+      // AABB vs Circle collision - Find closest point on block to circle center
+      const closestX = Math.max(blockLeft, Math.min(x, blockRight));
+      const closestY = Math.max(blockTop, Math.min(y, blockBottom));
 
-      const distX = newX - closestX;
-      const distY = newY - closestY;
+      const distX = x - closestX;
+      const distY = y - closestY;
       const distSq = distX * distX + distY * distY;
 
       if (distSq < radius * radius) {
@@ -125,19 +136,34 @@ function checkAxisCollision(
 
         const dist = Math.sqrt(distSq);
         if (dist > 0) {
+          // Normal points FROM wall TO entity (push direction)
           result.normalX = distX / dist;
           result.normalY = distY / dist;
           result.penetration = radius - dist;
         } else {
-          // Внутри блока — выталкиваем к старой позиции
-          const dx = newX - oldX;
-          const dy = newY - oldY;
-          const len = Math.sqrt(dx * dx + dy * dy);
-          if (len > 0) {
-            result.normalX = -dx / len;
-            result.normalY = -dy / len;
+          // Entity center is inside the block - push towards center
+          // Find the closest edge
+          const distToLeft = x - blockLeft;
+          const distToRight = blockRight - x;
+          const distToTop = y - blockTop;
+          const distToBottom = blockBottom - y;
+
+          const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+
+          if (minDist === distToLeft) {
+            result.normalX = -1;
+            result.normalY = 0;
+          } else if (minDist === distToRight) {
+            result.normalX = 1;
+            result.normalY = 0;
+          } else if (minDist === distToTop) {
+            result.normalX = 0;
+            result.normalY = -1;
+          } else {
+            result.normalX = 0;
+            result.normalY = 1;
           }
-          result.penetration = radius;
+          result.penetration = radius + minDist;
         }
 
         return result;
@@ -149,6 +175,47 @@ function checkAxisCollision(
 }
 
 /**
+ * Apply collision response to an entity
+ * Pushes entity out of collision AND stops velocity in the collision direction
+ */
+function applyCollisionResponse(eid: number, collision: CollisionResult): void {
+  // Skip tiny penetrations to prevent jitter
+  if (collision.penetration < MIN_PENETRATION_THRESHOLD) {
+    return;
+  }
+
+  const nx = collision.normalX;
+  const ny = collision.normalY;
+  const vx = Velocity.x[eid];
+  const vy = Velocity.y[eid];
+
+  // Calculate velocity component along the normal
+  const velAlongNormal = vx * nx + vy * ny;
+
+  // Only apply response if moving toward the wall (velocity opposes normal)
+  // Normal points FROM wall TO entity, so velAlongNormal < 0 means moving INTO wall
+  if (velAlongNormal < 0) {
+    // === POSITION CORRECTION ===
+    // Push entity out of collision
+    const correctionAmount = collision.penetration * POSITION_CORRECTION_FACTOR;
+    Position.x[eid] += nx * correctionAmount;
+    Position.y[eid] += ny * correctionAmount;
+
+    // === VELOCITY RESPONSE ===
+    // Remove velocity component toward the wall (set to 0, not just reduce)
+    // This prevents the shaking/stuck behavior!
+    // Formula: newVelocity = velocity - (velocity · normal) × normal
+    const newVx = vx - velAlongNormal * nx;
+    const newVy = vy - velAlongNormal * ny;
+
+    // Apply a small amount of friction to the remaining velocity (sliding)
+    const SLIDING_FRICTION = 0.9;
+    Velocity.x[eid] = newVx * SLIDING_FRICTION;
+    Velocity.y[eid] = newVy * SLIDING_FRICTION;
+  }
+}
+
+/**
  * Вспомогательная функция: проверка, можно ли двигаться в точку
  */
 export function canMoveTo(
@@ -156,7 +223,7 @@ export function canMoveTo(
   x: number,
   y: number,
   z: number,
-  radius: number
+  radius: number,
 ): boolean {
   const minBlockX = Math.floor((x - radius) / BLOCK_SIZE);
   const maxBlockX = Math.floor((x + radius) / BLOCK_SIZE);

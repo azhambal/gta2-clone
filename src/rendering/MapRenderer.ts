@@ -29,8 +29,8 @@ export class MapRenderer {
   private container: Container;
   private map: GameMap | null = null;
 
-  // Кэш геометрии чанков
-  private chunkGraphics: Map<string, Graphics> = new Map();
+  // Кэш геометрии чанков - теперь для каждого Z-уровня отдельная графика
+  private chunkGraphics: Map<string, Graphics[]> = new Map();
 
   constructor(parentContainer: Container) {
     this.container = new Container();
@@ -50,10 +50,10 @@ export class MapRenderer {
    * Перестроение всех чанков
    */
   public rebuildAllChunks(): void {
-    if (!this.map) return;
+    if (!this.map) {return;}
 
     // Очистка старой графики
-    this.chunkGraphics.forEach(g => g.destroy());
+    this.chunkGraphics.forEach(graphicsArray => graphicsArray.forEach(g => g.destroy()));
     this.chunkGraphics.clear();
 
     // Перестроение каждого чанка
@@ -69,46 +69,48 @@ export class MapRenderer {
     const key = `${chunk.chunkX},${chunk.chunkY}`;
 
     // Удаление старой графики
-    const oldGraphics = this.chunkGraphics.get(key);
-    if (oldGraphics) {
-      oldGraphics.destroy();
+    const oldGraphicsArray = this.chunkGraphics.get(key);
+    if (oldGraphicsArray) {
+      oldGraphicsArray.forEach(g => g.destroy());
     }
 
-    // Создание новой графики
-    const graphics = new Graphics();
-    graphics.label = `Chunk_${key}`;
-
-    // Позиция чанка в мировых координатах
+    // Создание графики для каждого Z-уровня
+    const graphicsArray: Graphics[] = [];
     const chunkWorldX = chunk.chunkX * CHUNK_SIZE * BLOCK_SIZE;
     const chunkWorldY = chunk.chunkY * CHUNK_SIZE * BLOCK_SIZE;
 
-    graphics.x = chunkWorldX;
-    graphics.y = chunkWorldY;
+    for (let z = 0; z < MAP_DEPTH; z++) {
+      const graphics = new Graphics();
+      graphics.label = `Chunk_${key}_Z${z}`;
+      graphics.x = chunkWorldX;
+      graphics.y = chunkWorldY;
+      // Устанавливаем zIndex для правильного порядка отрисовки
+      // Блоки на более высоких Z должны рендериться поверх более низких
+      graphics.zIndex = z * 10000; // Большой множитель чтобы гарантировать порядок
 
-    // Рендеринг блоков чанка
-    this.renderChunkBlocks(graphics, chunk);
+      // Рендеринг блоков только этого Z-уровня
+      this.renderChunkBlocksAtZ(graphics, chunk, z);
 
-    this.container.addChild(graphics);
-    this.chunkGraphics.set(key, graphics);
+      this.container.addChild(graphics);
+      graphicsArray.push(graphics);
+    }
 
+    this.chunkGraphics.set(key, graphicsArray);
     chunk.clearDirty();
   }
 
   /**
-   * Рендеринг блоков одного чанка
+   * Рендеринг блоков чанка на определённом Z-уровне
    */
-  private renderChunkBlocks(graphics: Graphics, chunk: Chunk): void {
-    // Рендерим от нижних слоёв к верхним
-    // И от дальних (меньший Y) к ближним (больший Y)
-    for (let z = 0; z < MAP_DEPTH; z++) {
-      for (let y = 0; y < CHUNK_SIZE; y++) {
-        for (let x = 0; x < CHUNK_SIZE; x++) {
-          const block = chunk.getBlock(x, y, z);
+  private renderChunkBlocksAtZ(graphics: Graphics, chunk: Chunk, z: number): void {
+    // Рендерим от дальних (меньший Y) к ближним (больший Y)
+    for (let y = 0; y < CHUNK_SIZE; y++) {
+      for (let x = 0; x < CHUNK_SIZE; x++) {
+        const block = chunk.getBlock(x, y, z);
 
-          if (block.isAir()) continue;
+        if (block.isAir()) {continue;}
 
-          this.renderBlock(graphics, x, y, z, block.getType());
-        }
+        this.renderBlock(graphics, x, y, z, block.getType());
       }
     }
   }
@@ -121,7 +123,7 @@ export class MapRenderer {
     localX: number,
     localY: number,
     z: number,
-    blockType: BlockType
+    blockType: BlockType,
   ): void {
     const color = BLOCK_COLORS[blockType] || 0xff00ff; // Magenta для неизвестных
 
@@ -190,7 +192,7 @@ export class MapRenderer {
     x: number,
     y: number,
     direction: SlopeDirection,
-    color: number
+    color: number,
   ): void {
     const halfHeight = BLOCK_SIZE * 0.25; // Половина высоты боковой грани
 
@@ -276,7 +278,7 @@ export class MapRenderer {
    * Обновление (проверка dirty чанков)
    */
   public update(): void {
-    if (!this.map) return;
+    if (!this.map) {return;}
 
     for (const chunk of this.map.iterateChunks()) {
       if (chunk.needsRebuild()) {
@@ -303,9 +305,10 @@ export class MapRenderer {
     const maxChunkY = Math.ceil((viewport.y + viewport.height) / (CHUNK_SIZE * BLOCK_SIZE));
 
     // Показать/скрыть чанки
-    this.chunkGraphics.forEach((graphics, key) => {
+    this.chunkGraphics.forEach((graphicsArray, key) => {
       const [cx, cy] = key.split(',').map(Number);
-      graphics.visible = cx >= minChunkX && cx <= maxChunkX && cy >= minChunkY && cy <= maxChunkY;
+      const visible = cx >= minChunkX && cx <= maxChunkX && cy >= minChunkY && cy <= maxChunkY;
+      graphicsArray.forEach(g => g.visible = visible);
     });
   }
 
@@ -313,7 +316,7 @@ export class MapRenderer {
    * Уничтожение
    */
   public destroy(): void {
-    this.chunkGraphics.forEach(g => g.destroy());
+    this.chunkGraphics.forEach(graphicsArray => graphicsArray.forEach(g => g.destroy()));
     this.chunkGraphics.clear();
     this.container.destroy();
   }

@@ -14,12 +14,14 @@ export interface AssetManifest {
 export class AssetManager {
   private loadedTextures: Map<string, Texture> = new Map();
   private loadedSpritesheets: Map<string, Spritesheet> = new Map();
-  private loadedData: Map<string, any> = new Map();
+  private loadedData: Map<string, unknown> = new Map();
 
   private totalAssets: number = 0;
   private loadedCount: number = 0;
 
-  constructor() {}
+  constructor() {
+    // Инициализация менеджера ассетов
+  }
 
   /**
    * Загрузка ресурсов по манифесту
@@ -76,7 +78,7 @@ export class AssetManager {
   /**
    * Загрузка JSON данных
    */
-  public async loadData(key: string, url: string): Promise<any> {
+  public async loadData(key: string, url: string): Promise<unknown> {
     const response = await fetch(url);
     const data = await response.json();
     this.loadedData.set(key, data);
@@ -116,7 +118,7 @@ export class AssetManager {
   /**
    * Получение данных
    */
-  public getData<T = any>(key: string): T | undefined {
+  public getData<T = unknown>(key: string): T | undefined {
     return this.loadedData.get(key) as T;
   }
 

@@ -44,7 +44,7 @@ export class Chunk {
    * Установка блока по локальным координатам
    */
   public setBlock(localX: number, localY: number, z: number, block: BlockData): void {
-    if (!this.isValidLocal(localX, localY, z)) return;
+    if (!this.isValidLocal(localX, localY, z)) {return;}
 
     const index = this.getIndex(localX, localY, z);
     this.blocks[index] = block.getValue();

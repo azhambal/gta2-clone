@@ -254,6 +254,107 @@ export enum TrafficState {
   FLEEING = 5,
 }
 
+// Weapon components
+export const Weapon: {
+  type: number[];
+  damage: number[];
+  fireRate: number[];
+  range: number[];
+  ammo: number[];
+  maxAmmo: number[];
+  reloadTime: number[];
+  accuracy: number[];
+  automatic: number[];
+  projectileSpeed: number[];
+  projectileCount: number[];
+  spread: number[];
+  lastFired: number[];
+  reloading: number[];
+  reloadTimer: number[];
+} = {
+  type: [],
+  damage: [],
+  fireRate: [],
+  range: [],
+  ammo: [],
+  maxAmmo: [],
+  reloadTime: [],
+  accuracy: [],
+  automatic: [],
+  projectileSpeed: [],
+  projectileCount: [],
+  spread: [],
+  lastFired: [],
+  reloading: [],
+  reloadTimer: [],
+};
+
+export const Projectile: {
+  damage: number[];
+  speed: number[];
+  range: number[];
+  remainingRange: number[];
+  owner: number[];
+  penetration: number[];
+  lifetime: number[];
+  maxLifetime: number[];
+} = {
+  damage: [],
+  speed: [],
+  range: [],
+  remainingRange: [],
+  owner: [],
+  penetration: [],
+  lifetime: [],
+  maxLifetime: [],
+};
+
+export const Explosion: {
+  radius: number[];
+  damage: number[];
+  force: number[];
+  timer: number[];
+  source: number[];
+} = {
+  radius: [],
+  damage: [],
+  force: [],
+  timer: [],
+  source: [],
+};
+
+export const Inventory: {
+  weapons: number[]; // Entity ID of current weapon entity
+  currentWeaponIndex: number[];
+  maxWeapons: number[];
+} = {
+  weapons: [],
+  currentWeaponIndex: [],
+  maxWeapons: [],
+};
+
+export const WeaponPickup: {
+  weaponType: number[];
+  ammo: number[];
+} = {
+  weaponType: [],
+  ammo: [],
+};
+
+/**
+ * Типы оружия
+ */
+export enum WeaponType {
+  FIST = 0,
+  PISTOL = 1,
+  UZI = 2,
+  SHOTGUN = 3,
+  MACHINE_GUN = 4,
+  FLAMETHROWER = 5,
+  ROCKET_LAUNCHER = 6,
+  SNIPER_RIFLE = 7,
+}
+
 // Export all components for reference
 export const allComponents = {
   Position,
@@ -274,4 +375,9 @@ export const allComponents = {
   VehiclePhysics,
   PedestrianAI,
   TrafficAI,
+  Weapon,
+  Projectile,
+  Explosion,
+  Inventory,
+  WeaponPickup,
 };

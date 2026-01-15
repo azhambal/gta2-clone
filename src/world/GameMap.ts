@@ -69,7 +69,7 @@ export class GameMap {
     const localY = y - chunkY * CHUNK_SIZE;
 
     const chunk = this.getChunk(chunkX, chunkY);
-    if (!chunk) return new BlockData(BlockType.AIR);
+    if (!chunk) {return new BlockData(BlockType.AIR);}
 
     return chunk.getBlock(localX, localY, z);
   }
@@ -84,7 +84,7 @@ export class GameMap {
     const localY = y - chunkY * CHUNK_SIZE;
 
     const chunk = this.getChunk(chunkX, chunkY);
-    if (!chunk) return;
+    if (!chunk) {return;}
 
     chunk.setBlock(localX, localY, z, block);
   }
@@ -134,7 +134,7 @@ export class GameMap {
     for (let cy = Math.max(0, minCY); cy <= Math.min(this.heightInChunks - 1, maxCY); cy++) {
       for (let cx = Math.max(0, minCX); cx <= Math.min(this.widthInChunks - 1, maxCX); cx++) {
         const chunk = this.getChunk(cx, cy);
-        if (chunk) result.push(chunk);
+        if (chunk) {result.push(chunk);}
       }
     }
 

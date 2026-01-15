@@ -1,27 +1,32 @@
 import { Engine } from './core/Engine.js';
 import { eventBus } from './core/EventBus.js';
 import { Debug } from './utils/Debug.js';
-import { GAME_CONSTANTS } from './core/Types.js';
-import type { GameConfig } from './core/Types.js';
+import { GAME_CONSTANTS, type GameConfig } from './core/Types.js';
 import { Renderer } from './rendering/Renderer.js';
 import { Camera } from './rendering/Camera.js';
 import { MapGenerator } from './world/MapGenerator.js';
 import { GameMap } from './world/GameMap.js';
 import { InputManager, GameAction } from './input/index.js';
-import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem, createMapCollisionSystem } from './ecs/index.js';
+import { ecsWorld, EntityFactory, SystemManager, movementSystem, animationSystem, createPlayerInputSystem, createMapCollisionSystem, createEntityCollisionSystem, createSlopeSystem } from './ecs/index.js';
 import { PhysicsManager } from './physics/PhysicsManager.js';
 import { createPhysicsSyncSystem } from './ecs/systems/PhysicsSyncSystem.js';
 import { createVehiclePhysicsSystem } from './ecs/systems/VehiclePhysicsSystem.js';
 import { createVehicleInteractionSystem } from './ecs/systems/VehicleInteractionSystem.js';
+import { addComponent } from 'bitecs';
 import { createSurfaceEffectSystem } from './ecs/systems/SurfaceEffectSystem.js';
 import { VehicleType } from './data/VehicleDefinitions.js';
 import { audioManager, preloadSounds } from './audio/index.js';
 import { createPedestrianAISystem, generateTrafficNetwork, TrafficNetwork } from './ai/index.js';
 import { createTrafficAISystem } from './ecs/systems/TrafficAISystem.js';
+import { createWeaponSystem } from './ecs/systems/WeaponSystem.js';
+import { createProjectileSystem } from './ecs/systems/ProjectileSystem.js';
+import { createHealthSystem } from './ecs/systems/HealthSystem.js';
+import { createDebugRenderSystem, DebugMode as RenderDebugMode } from './ecs/systems/DebugRenderSystem.js';
+import { getDebugModeManager, DebugMode } from './debug/index.js';
 import { SpawnManager } from './gameplay/index.js';
 import { DistrictManager, createRectDistrictConfig } from './world/index.js';
-import { getDistrictIndicator } from './ui/index.js';
-import { Position, Vehicle } from './ecs/components/index.js';
+import { getDistrictIndicator, DebugOverlay } from './ui/index.js';
+import { Position, Vehicle, TrafficAI, Rotation } from './ecs/components/index.js';
 
 /**
  * Главный класс игры
@@ -39,6 +44,8 @@ export class Game {
   private districtManager!: DistrictManager;
   private trafficNetwork!: TrafficNetwork;
   private playerEntity: number = 0;
+  private debugModeManager = getDebugModeManager();
+  private debugOverlay: DebugOverlay | null = null;
 
   constructor(config: Partial<GameConfig> = {}) {
     this.config = {
@@ -119,23 +126,34 @@ export class Game {
     // Инициализация ECS
     this.systemManager = new SystemManager();
     // VehicleInteractionSystem должен идти ПЕРЕД playerInput (чтобы обработать вход/выход первым)
-    this.systemManager.register('vehicleInteraction', createVehicleInteractionSystem(this.inputManager), -5);
+    this.systemManager.register('vehicleInteraction', createVehicleInteractionSystem(this.inputManager, this.currentMap), -5);
     this.systemManager.register('playerInput', createPlayerInputSystem(this.inputManager), 0);
-    // VehiclePhysicsSystem должен идти после playerInput (для получения ввода) и перед movement/mapCollision
-    this.systemManager.register('vehiclePhysics', createVehiclePhysicsSystem(this.physicsManager, this.currentMap), 5);
-    // SurfaceEffectSystem для спавна частиц поверхностей (после vehiclePhysics для получения скорости)
-    this.systemManager.register('surfaceEffects', createSurfaceEffectSystem(this.currentMap), 6);
     // Инициализация сети трафика
     this.trafficNetwork = generateTrafficNetwork(this.currentMap);
     Debug.log('Game', 'Traffic network generated');
 
+    // AI системы ДОЛЖНЫ идти ДО vehiclePhysics, чтобы их ввод (throttle/steering) обрабатывался в том же кадре
     // PedestrianAISystem для управления NPC пешеходами
-    this.systemManager.register('pedestrianAI', createPedestrianAISystem(this.currentMap), 7);
+    this.systemManager.register('pedestrianAI', createPedestrianAISystem(this.currentMap), 1);
     // TrafficAISystem для управления NPC машинами
-    this.systemManager.register('trafficAI', createTrafficAISystem(this.trafficNetwork), 8);
+    this.systemManager.register('trafficAI', createTrafficAISystem(this.trafficNetwork), 2);
+    // WeaponSystem для обработки стрельбы (после AI, перед physics)
+    this.systemManager.register('weapon', createWeaponSystem(this.inputManager), 3);
+    // VehiclePhysicsSystem должен идти ПОСЛЕ AI (для получения AI ввода) и перед movement/mapCollision
+    this.systemManager.register('vehiclePhysics', createVehiclePhysicsSystem(this.physicsManager, this.currentMap), 5);
+    // SurfaceEffectSystem для спавна частиц поверхностей (после vehiclePhysics для получения скорости)
+    this.systemManager.register('surfaceEffects', createSurfaceEffectSystem(this.currentMap), 6);
     this.systemManager.register('movement', movementSystem, 10);
-    // Регистрация системы коллизий после movement
+    // SlopeSystem для обработки наклонных блоков (после movement, до collision)
+    this.systemManager.register('slope', createSlopeSystem(this.currentMap), 11);
+    // ProjectileSystem для обработки снарядов (после slope, перед collision)
+    this.systemManager.register('projectile', createProjectileSystem(this.currentMap), 12);
+    // Регистрация системы коллизий после movement и slope
     this.systemManager.register('mapCollision', createMapCollisionSystem(this.currentMap), 15);
+    // EntityCollisionSystem для коллизий между сущностями (после mapCollision)
+    this.systemManager.register('entityCollision', createEntityCollisionSystem(), 17);
+    // HealthSystem для обработки урона и смерти (после collision/projectile, перед animation)
+    this.systemManager.register('health', createHealthSystem(), 18);
     this.systemManager.register('animation', animationSystem, 20);
     // Регистрация системы синхронизации физики (после всех физических систем)
     this.systemManager.register('physicsSync', createPhysicsSyncSystem(this.physicsManager), 50);
@@ -154,6 +172,8 @@ export class Game {
       maxPedestrians: 30,
       maxVehicles: 15,
     });
+    // Set traffic network for AI navigation
+    this.spawnManager.setTrafficNetwork(this.trafficNetwork);
     Debug.log('Game', 'SpawnManager initialized');
 
     // Инициализация DistrictManager и создание районов
@@ -164,13 +184,85 @@ export class Game {
     Debug.log('Game', 'DistrictManager initialized');
 
     // Создание тестовых машин разных типов
-    const vehicle1 = EntityFactory.createVehicle(world, worldWidth / 2 - 100, worldHeight / 2, VehicleType.CAR_SPORT, this.physicsManager);
-    const vehicle2 = EntityFactory.createVehicle(world, worldWidth / 2 + 100, worldHeight / 2, VehicleType.CAR_SEDAN, this.physicsManager);
-    const vehicle3 = EntityFactory.createVehicle(world, worldWidth / 2, worldHeight / 2 - 100, VehicleType.CAR_TAXI, this.physicsManager);
-    const vehicle4 = EntityFactory.createVehicle(world, worldWidth / 2, worldHeight / 2 + 100, VehicleType.TRUCK, this.physicsManager);
-    const vehicle5 = EntityFactory.createVehicle(world, worldWidth / 2 - 200, worldHeight / 2 - 100, VehicleType.BUS, this.physicsManager);
-    const vehicle6 = EntityFactory.createVehicle(world, worldWidth / 2 + 200, worldHeight / 2 - 100, VehicleType.MOTORCYCLE, this.physicsManager);
-    const vehicle7 = EntityFactory.createVehicle(world, worldWidth / 2 - 200, worldHeight / 2 + 100, VehicleType.TANK, this.physicsManager);
+    const vehicle1 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2 - 100,
+      worldHeight / 2,
+      VehicleType.CAR_SPORT,
+      this.physicsManager,
+    );
+    const vehicle2 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2 + 100,
+      worldHeight / 2,
+      VehicleType.CAR_SEDAN,
+      this.physicsManager,
+    );
+    const vehicle3 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2,
+      worldHeight / 2 - 100,
+      VehicleType.CAR_TAXI,
+      this.physicsManager,
+    );
+    const vehicle4 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2,
+      worldHeight / 2 + 100,
+      VehicleType.TRUCK,
+      this.physicsManager,
+    );
+    const vehicle5 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2 - 200,
+      worldHeight / 2 - 100,
+      VehicleType.BUS,
+      this.physicsManager,
+    );
+    const vehicle6 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2 + 200,
+      worldHeight / 2 - 100,
+      VehicleType.MOTORCYCLE,
+      this.physicsManager,
+    );
+    const vehicle7 = EntityFactory.createVehicle(
+      world,
+      worldWidth / 2 - 200,
+      worldHeight / 2 + 100,
+      VehicleType.TANK,
+      this.physicsManager,
+    );
+
+    // Добавляем AI трафика к тестовым машинам, чтобы они двигались
+    const testVehicles = [vehicle1, vehicle2, vehicle3, vehicle4, vehicle5, vehicle6, vehicle7];
+    for (const eid of testVehicles) {
+      addComponent(world, eid, TrafficAI);
+      TrafficAI.state[eid] = 0; // DRIVING
+      TrafficAI.previousState[eid] = 0;
+      TrafficAI.desiredSpeed[eid] = 100 + Math.random() * 50;
+      TrafficAI.aggressiveness[eid] = 0.3 + Math.random() * 0.4;
+      TrafficAI.patience[eid] = 3 + Math.random() * 3;
+      TrafficAI.distanceToNext[eid] = 0;
+      TrafficAI.hasObstacle[eid] = 0;
+      TrafficAI.stateTimer[eid] = 0;
+      TrafficAI.waitTimer[eid] = 0;
+
+      // Находим ближайший waypoint для инициализации
+      const nearestWaypoint = this.trafficNetwork.getNearestWaypoint(Position.x[eid], Position.y[eid], 0);
+      if (nearestWaypoint) {
+        TrafficAI.currentWaypointId[eid] = nearestWaypoint.id;
+        // Поворачиваем машину к следующему waypoint
+        const nextWaypoint = this.trafficNetwork.getNextWaypoint(nearestWaypoint.id);
+        if (nextWaypoint) {
+          const dx = nextWaypoint.x - Position.x[eid];
+          const dy = nextWaypoint.y - Position.y[eid];
+          Rotation.angle[eid] = Math.atan2(dy, dx);
+        }
+      } else {
+        console.warn(`No waypoint found for test vehicle ${eid}`);
+      }
+    }
     Debug.log('Game', `Test vehicles created: ${vehicle1}, ${vehicle2}, ${vehicle3}, ${vehicle4}, ${vehicle5}, ${vehicle6}, ${vehicle7}`);
 
     // Создание тестовых NPC пешеходов
@@ -189,6 +281,15 @@ export class Game {
 
     // Передача карты рендереру
     this.renderer.setMap(this.currentMap);
+
+    // Инициализация отладочной визуализации
+    const debugRenderSystem = createDebugRenderSystem(this.renderer.getDebugContainer());
+    this.renderer.setDebugRenderSystem(debugRenderSystem);
+    Debug.log('Game', 'Debug render system initialized');
+
+    // Инициализация отладочного оверлея (текст на экране)
+    this.debugOverlay = new DebugOverlay(this.renderer.getUIContainer());
+    Debug.log('Game', 'Debug overlay initialized');
 
     // Обработка ресайза
     window.addEventListener('resize', this.handleResize.bind(this));
@@ -247,6 +348,75 @@ export class Game {
       // Пауза будет реализована позже
     }
 
+    // Debug mode toggles (F1-F5 keys) - render debug
+    if (this.inputManager.isKeyJustPressed('F1')) {
+      this.debugModeManager.toggleRenderDebugMode(RenderDebugMode.COLLISION);
+    }
+    if (this.inputManager.isKeyJustPressed('F2')) {
+      this.debugModeManager.toggleRenderDebugMode(RenderDebugMode.AI);
+    }
+    if (this.inputManager.isKeyJustPressed('F3')) {
+      this.debugModeManager.toggleRenderDebugMode(RenderDebugMode.PHYSICS);
+    }
+    if (this.inputManager.isKeyJustPressed('F4')) {
+      this.debugModeManager.toggleRenderDebugMode(RenderDebugMode.Z_LEVEL);
+    }
+    if (this.inputManager.isKeyJustPressed('F5')) {
+      this.debugModeManager.toggleRenderDebugMode(RenderDebugMode.ALL);
+    }
+
+    // Special debug modes (F9-F12)
+    if (this.inputManager.isKeyJustPressed('F9')) {
+      this.debugModeManager.toggleGodMode();
+    }
+    if (this.inputManager.isKeyJustPressed('F10')) {
+      this.debugModeManager.toggleSlowMotion();
+    }
+    if (this.inputManager.isKeyJustPressed('F11')) {
+      // Toggle fullscreen
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        document.documentElement.requestFullscreen();
+      }
+    }
+
+    // Frame by frame mode (Comma/Period)
+    if (this.inputManager.isKeyJustPressed(',')) {
+      this.debugModeManager.toggleFrameByFrame();
+    }
+    if (this.inputManager.isKeyJustPressed('.')) {
+      if (this.debugModeManager.isFrameByFrame()) {
+        this.debugModeManager.advanceFrame();
+      } else {
+        this.debugModeManager.togglePause();
+      }
+    }
+
+    // Number keys for quick mode switching (1-9, 0)
+    const numberKeys: Record<string, DebugMode> = {
+      '1': DebugMode.WORLD_ONLY,
+      '2': DebugMode.PLAYER_BASIC,
+      '3': DebugMode.VEHICLES_ONLY,
+      '4': DebugMode.COMBAT_ONLY,
+      '5': DebugMode.AI_ONLY,
+      '6': DebugMode.GAMEPLAY_BASIC,
+      '7': DebugMode.NO_VEHICLES,
+      '8': DebugMode.NO_AI,
+      '9': DebugMode.GOD_MODE,
+      '0': DebugMode.FULL_GAME,
+    };
+    for (const [key, mode] of Object.entries(numberKeys)) {
+      if (this.inputManager.isKeyJustPressed(key)) {
+        this.debugModeManager.switchMode(mode);
+      }
+    }
+
+    // H key - show full debug info
+    if (this.inputManager.isKeyJustPressed('h')) {
+      this.debugOverlay?.showFullDebugInfo();
+    }
+
     // Обновление камеры
     this.camera.update(16.67); // dt для камеры
 
@@ -254,8 +424,14 @@ export class Game {
     const viewport = this.camera.getViewport();
     this.renderer.getMapRenderer()?.setViewport(viewport);
 
-    // Обновление рендерера
-    this.renderer.update();
+    // Обновление рендерера (передаём world для debug render system)
+    const world = ecsWorld.getWorld();
+    this.renderer.update(world);
+
+    // Обновление debug overlay
+    if (this.debugOverlay) {
+      this.debugOverlay.update(_dt);
+    }
 
     // Очистка состояния ввода
     this.inputManager.update();
@@ -265,23 +441,31 @@ export class Game {
    * Фиксированное обновление (физика)
    */
   private fixedUpdate(dt: number): void {
+    // Применяем масштаб времени из debug mode manager
+    const scaledDt = this.debugModeManager.getScaledDt(dt);
+
+    // Если на паузе и не в покадровом режиме - пропускаем
+    if (scaledDt === 0 && !this.debugModeManager.isFrameByFrame()) {
+      return;
+    }
+
     const world = ecsWorld.getWorld();
 
     // Обновление ECS систем
-    this.systemManager.update(world, dt);
+    this.systemManager.update(world, scaledDt);
 
     // Обновление SpawnManager (спавн/деспавн сущностей)
     if (this.playerEntity > 0) {
       const playerX = Position.x[this.playerEntity] ?? 0;
       const playerY = Position.y[this.playerEntity] ?? 0;
-      this.spawnManager.update(playerX, playerY, dt);
+      this.spawnManager.update(playerX, playerY, scaledDt);
 
       // Обновление текущего района
       this.districtManager.updateCurrentDistrict(playerX, playerY);
     }
 
     // Обновление физики
-    this.physicsManager.update(dt);
+    this.physicsManager.update(scaledDt);
   }
 
   /**
@@ -327,7 +511,7 @@ export class Game {
         const { bodyA, bodyB } = pair;
         const relativeVelocity = Math.sqrt(
           Math.pow(bodyA.velocity.x - bodyB.velocity.x, 2) +
-          Math.pow(bodyA.velocity.y - bodyB.velocity.y, 2)
+          Math.pow(bodyA.velocity.y - bodyB.velocity.y, 2),
         );
         const threshold = 10; // Порог для проигрывания звука
 
@@ -388,7 +572,7 @@ export class Game {
         pedestrianTypes: [0, 1, 2],
         ambientTrack: 'ambient_city',
         policePresence: 0.7,
-      }
+      },
     ));
 
     // Industrial Zone (юго-восток) - низкая плотность, грузовики
@@ -406,7 +590,7 @@ export class Game {
         pedestrianTypes: [3, 4],
         ambientTrack: 'ambient_industrial',
         policePresence: 0.2,
-      }
+      },
     ));
 
     // Residential District (северо-запад) - средняя плотность, легковые машины
@@ -424,7 +608,7 @@ export class Game {
         pedestrianTypes: [0, 1, 2],
         ambientTrack: 'ambient_quiet',
         policePresence: 0.3,
-      }
+      },
     ));
 
     // Entertainment District (северо-восток) - высокая плотность, спортивные машины
@@ -442,7 +626,7 @@ export class Game {
         pedestrianTypes: [0, 1, 2],
         ambientTrack: 'ambient_nightlife',
         policePresence: 0.5,
-      }
+      },
     ));
 
     // Suburbs (юго-запад) - низкая плотность
@@ -460,7 +644,7 @@ export class Game {
         pedestrianTypes: [0, 1],
         ambientTrack: 'ambient_quiet',
         policePresence: 0.1,
-      }
+      },
     ));
 
     Debug.log('Game', `Created ${this.districtManager.getCount()} districts`);

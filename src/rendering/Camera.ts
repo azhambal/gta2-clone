@@ -164,7 +164,7 @@ export class Camera {
    * Ограничение камеры границами мира
    */
   private clampToWorldBounds(): void {
-    if (!this.worldBounds) return;
+    if (!this.worldBounds) {return;}
 
     const halfWidth = (this.screenWidth / 2) / this.zoom;
     const halfHeight = (this.screenHeight / 2) / this.zoom;
@@ -193,7 +193,7 @@ export class Camera {
    * Применение трансформации к контейнеру
    */
   private updateContainer(): void {
-    if (!this.container) return;
+    if (!this.container) {return;}
 
     // Позиция контейнера = центр экрана - позиция камеры
     this.container.x = this.screenWidth / 2 - this.position.x * this.zoom + this.shakeOffset.x;

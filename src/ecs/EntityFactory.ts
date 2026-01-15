@@ -16,8 +16,12 @@ import {
   RigidBody,
   PedestrianAI,
   PedestrianState,
+  Inventory,
+  Weapon,
 } from './components/index.js';
 import { getVehicleDefinition, VehicleType } from '../data/VehicleDefinitions.js';
+import { getWeaponDefinition, WeaponType } from '../data/WeaponDefinitions.js';
+import { CollisionLayer, CollisionMask } from '../physics/CollisionLayers.js';
 
 /**
  * Фабрика для создания сущностей
@@ -30,7 +34,7 @@ export class EntityFactory {
     world: GameWorld,
     x: number,
     y: number,
-    z: number = 0
+    z: number = 0,
   ): number {
     const eid = addEntity(world);
 
@@ -51,7 +55,7 @@ export class EntityFactory {
   public static createPlayer(
     world: GameWorld,
     x: number,
-    y: number
+    y: number,
   ): number {
     const eid = this.createBasicEntity(world, x, y, 0);
 
@@ -59,6 +63,7 @@ export class EntityFactory {
     addComponent(world, eid, Velocity);
     Velocity.x[eid] = 0;
     Velocity.y[eid] = 0;
+    Velocity.z[eid] = 0;
 
     // Спрайт
     addComponent(world, eid, SpriteComponent);
@@ -73,7 +78,8 @@ export class EntityFactory {
     addComponent(world, eid, Collider);
     Collider.type[eid] = 2; // Circle
     Collider.radius[eid] = 12;
-    Collider.layer[eid] = 2; // Pedestrian layer
+    Collider.layer[eid] = CollisionLayer.PEDESTRIAN;
+    Collider.mask[eid] = CollisionMask.PEDESTRIAN;
 
     // Здоровье
     addComponent(world, eid, Health);
@@ -83,6 +89,42 @@ export class EntityFactory {
     // Теги
     addComponent(world, eid, PlayerControlled);
     addComponent(world, eid, Pedestrian);
+
+    // Инвентарь для оружия
+    addComponent(world, eid, Inventory);
+    Inventory.currentWeaponIndex[eid] = 0;
+    Inventory.maxWeapons[eid] = 8;
+
+    // Создаём стартовое оружие (пистолет)
+    const weaponEid = this.createWeapon(world, WeaponType.PISTOL);
+    Inventory.weapons[eid] = weaponEid;
+
+    return eid;
+  }
+
+  /**
+   * Создание оружия
+   */
+  public static createWeapon(world: GameWorld, weaponType: WeaponType): number {
+    const eid = addEntity(world);
+    const def = getWeaponDefinition(weaponType);
+
+    addComponent(world, eid, Weapon);
+    Weapon.type[eid] = def.type;
+    Weapon.damage[eid] = def.damage;
+    Weapon.fireRate[eid] = def.fireRate;
+    Weapon.range[eid] = def.range;
+    Weapon.ammo[eid] = def.maxAmmo;
+    Weapon.maxAmmo[eid] = def.maxAmmo;
+    Weapon.reloadTime[eid] = def.reloadTime;
+    Weapon.accuracy[eid] = def.accuracy;
+    Weapon.automatic[eid] = def.automatic ? 1 : 0;
+    Weapon.projectileSpeed[eid] = def.projectileSpeed;
+    Weapon.projectileCount[eid] = def.projectileCount;
+    Weapon.spread[eid] = def.spread;
+    Weapon.lastFired[eid] = 0;
+    Weapon.reloading[eid] = 0;
+    Weapon.reloadTimer[eid] = 0;
 
     return eid;
   }
@@ -94,11 +136,15 @@ export class EntityFactory {
     world: GameWorld,
     x: number,
     y: number,
-    type: number = 0
+    type: number = 0,
   ): number {
     const eid = this.createBasicEntity(world, x, y, 0);
 
     addComponent(world, eid, Velocity);
+    Velocity.x[eid] = 0;
+    Velocity.y[eid] = 0;
+    Velocity.z[eid] = 0;
+
     addComponent(world, eid, SpriteComponent);
     SpriteComponent.width[eid] = 32;
     SpriteComponent.height[eid] = 32;
@@ -109,6 +155,8 @@ export class EntityFactory {
     addComponent(world, eid, Collider);
     Collider.type[eid] = 2;
     Collider.radius[eid] = 12;
+    Collider.layer[eid] = CollisionLayer.PEDESTRIAN;
+    Collider.mask[eid] = CollisionMask.PEDESTRIAN;
 
     addComponent(world, eid, Health);
     Health.current[eid] = 50;
@@ -143,7 +191,7 @@ export class EntityFactory {
     x: number,
     y: number,
     type: VehicleType = VehicleType.CAR_SEDAN,
-    physicsManager?: PhysicsManager
+    physicsManager?: PhysicsManager,
   ): number {
     const def = getVehicleDefinition(type);
     const eid = addEntity(world);
@@ -162,6 +210,7 @@ export class EntityFactory {
     addComponent(world, eid, Velocity);
     Velocity.x[eid] = 0;
     Velocity.y[eid] = 0;
+    Velocity.z[eid] = 0;
 
     // Спрайт
     addComponent(world, eid, SpriteComponent);
@@ -177,6 +226,8 @@ export class EntityFactory {
     Collider.type[eid] = 1; // Box
     Collider.width[eid] = def.colliderWidth;
     Collider.height[eid] = def.colliderHeight;
+    Collider.layer[eid] = CollisionLayer.VEHICLE;
+    Collider.mask[eid] = CollisionMask.VEHICLE;
 
     // Здоровье
     addComponent(world, eid, Health);
@@ -225,7 +276,7 @@ export class EntityFactory {
           frictionAir: 0.02,
           restitution: 0.3,
           mass: def.mass / 1000, // Matter.js использует меньшие значения
-        }
+        },
       );
       RigidBody.bodyId[eid] = body.id;
     }

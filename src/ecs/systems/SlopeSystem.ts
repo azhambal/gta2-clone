@@ -120,7 +120,7 @@ export function getZAtPosition(
   map: GameMap,
   worldX: number,
   worldY: number,
-  currentZ: number
+  currentZ: number,
 ): number {
   const blockX = Math.floor(worldX / BLOCK_SIZE);
   const blockY = Math.floor(worldY / BLOCK_SIZE);

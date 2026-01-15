@@ -1,4 +1,4 @@
-import { query } from 'bitecs';
+import { query, hasComponent } from 'bitecs';
 import type { GameWorld } from '../World.js';
 import { TrafficNetwork } from '../../ai/TrafficWaypoints.js';
 import {
@@ -34,7 +34,7 @@ export const createTrafficAISystem = (trafficNetwork: TrafficNetwork) => {
 
     for (const eid of entities) {
       // Пропускаем управляемых игроком машин
-      if (eid in PlayerControlled) continue;
+      if (hasComponent(world, eid, PlayerControlled)) {continue;}
 
       // Обновление таймеров
       TrafficAI.stateTimer[eid] -= deltaSeconds;
@@ -79,7 +79,7 @@ function handleDrivingState(
   _world: GameWorld,
   eid: number,
   network: TrafficNetwork,
-  dt: number
+  dt: number,
 ): void {
   const waypointId = TrafficAI.currentWaypointId[eid];
   const waypoint = network.getWaypoint(waypointId);
@@ -129,7 +129,7 @@ function handleDrivingState(
   // Управление машиной
   const targetAngle = Math.atan2(dy, dx);
   const currentAngle = Rotation.angle[eid];
-  let angleDiff = normalizeAngle(targetAngle - currentAngle);
+  const angleDiff = normalizeAngle(targetAngle - currentAngle);
 
   // Если нужно развернуться (> 90 градусов), притормозить
   if (Math.abs(angleDiff) > Math.PI / 2) {
@@ -167,7 +167,7 @@ function handleStoppedState(
   _world: GameWorld,
   eid: number,
   _network: TrafficNetwork,
-  _dt: number
+  _dt: number,
 ): void {
   VehiclePhysics.throttle[eid] = 0;
   VehiclePhysics.braking[eid] = 1;
@@ -186,7 +186,7 @@ function handleWaitingState(
   _world: GameWorld,
   eid: number,
   _network: TrafficNetwork,
-  _dt: number
+  _dt: number,
 ): void {
   VehiclePhysics.throttle[eid] = 0;
 
@@ -218,7 +218,7 @@ function handleTurningState(
   _world: GameWorld,
   eid: number,
   network: TrafficNetwork,
-  _dt: number
+  _dt: number,
 ): void {
   const waypointId = TrafficAI.currentWaypointId[eid];
   const waypoint = network.getWaypoint(waypointId);
@@ -267,7 +267,7 @@ function handleFleeingState(
   _world: GameWorld,
   eid: number,
   _network: TrafficNetwork,
-  _dt: number
+  _dt: number,
 ): void {
   // Едем быстро вперёд
   VehiclePhysics.throttle[eid] = 1;
@@ -332,8 +332,8 @@ function findVehiclesNear(world: GameWorld, x: number, y: number, radius: number
  * Нормализовать угол в диапазон [-PI, PI]
  */
 function normalizeAngle(angle: number): number {
-  while (angle > Math.PI) angle -= Math.PI * 2;
-  while (angle < -Math.PI) angle += Math.PI * 2;
+  while (angle > Math.PI) {angle -= Math.PI * 2;}
+  while (angle < -Math.PI) {angle += Math.PI * 2;}
   return angle;
 }
 
@@ -378,10 +378,10 @@ export function spawnTrafficVehicle(
   x: number,
   y: number,
   z: number = 0,
-  createVehicleFn: (x: number, y: number, z: number) => number
+  createVehicleFn: (x: number, y: number, z: number) => number,
 ): number | null {
   const waypoint = network.getNearestWaypoint(x, y, z);
-  if (!waypoint) return null;
+  if (!waypoint) {return null;}
 
   const eid = createVehicleFn(waypoint.x, waypoint.y, waypoint.z);
 

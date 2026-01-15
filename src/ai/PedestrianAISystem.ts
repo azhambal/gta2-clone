@@ -23,7 +23,7 @@ export const createPedestrianAISystem = (gameMap: GameMap) => {
 
     for (const eid of entities) {
       // Пропускаем игрока (проверяем наличие тега PlayerControlled)
-      if (eid in PlayerControlled) continue;
+      if (eid in PlayerControlled) {continue;}
 
       // Обновление таймеров
       PedestrianAI.stateTimer[eid] -= deltaSeconds;
@@ -79,7 +79,7 @@ export const createPedestrianAISystem = (gameMap: GameMap) => {
 function handleIdleState(
   _world: GameWorld,
   eid: number,
-  pathfinder: Pathfinder
+  pathfinder: Pathfinder,
 ): void {
   const x = Position.x[eid];
   const y = Position.y[eid];
@@ -297,7 +297,7 @@ export function makePedestrianFlee(
   _world: GameWorld,
   eid: number,
   fromX: number,
-  fromY: number
+  fromY: number,
 ): void {
   const x = Position.x[eid];
   const y = Position.y[eid];

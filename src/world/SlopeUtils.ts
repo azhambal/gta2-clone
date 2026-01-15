@@ -51,7 +51,7 @@ export function calculateZOnSlope(
   localX: number,
   localY: number,
   slopeDirection: SlopeDirection,
-  baseZ: number
+  baseZ: number,
 ): number {
   let progress = 0;
 
@@ -88,7 +88,7 @@ export function calculateZOnSlope(
 export function calculateHeightOnSlope(
   localX: number,
   localY: number,
-  slopeDirection: SlopeDirection
+  slopeDirection: SlopeDirection,
 ): number {
   let progress = 0;
 
@@ -123,7 +123,7 @@ export function isPointInBlock(
   blockX: number,
   blockY: number,
   worldX: number,
-  worldY: number
+  worldY: number,
 ): boolean {
   const localX = worldX - blockX * BLOCK_SIZE;
   const localY = worldY - blockY * BLOCK_SIZE;

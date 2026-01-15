@@ -1,9 +1,11 @@
-import { query, addComponent } from 'bitecs';
+import { query, addComponent, removeComponent, hasComponent } from 'bitecs';
 import type { GameWorld } from '../World.js';
 import type { InputManager } from '../../input/InputManager.js';
+import type { GameMap } from '../../world/GameMap.js';
 import { GameAction } from '../../input/index.js';
 import { eventBus } from '../../core/EventBus.js';
 import { PlayerControlled, Driver, Vehicle, Position, VehicleOccupants, Rotation, SpriteComponent, VehiclePhysics } from '../components/index.js';
+import { canMoveTo } from './MapCollisionSystem.js';
 
 // Alias for Position for code clarity
 const Pos = Position;
@@ -19,11 +21,16 @@ const ENTER_VEHICLE_DISTANCE = 80;
 const EXIT_OFFSET = 40;
 
 /**
+ * Радиус коллайдера игрока для проверки коллизий при выходе
+ */
+const PLAYER_COLLIDER_RADIUS = 12;
+
+/**
  * Создание системы взаимодействия с транспортом
  *
  * Обрабатывает вход и выход игрока из машин по нажатию E
  */
-export const createVehicleInteractionSystem = (inputManager: InputManager) => {
+export const createVehicleInteractionSystem = (inputManager: InputManager, gameMap: GameMap) => {
   return (world: GameWorld, _dt: number) => {
     // Проверяем нажатие клавиши входа/выхода
     if (!inputManager.isActionJustPressed(GameAction.ENTER_EXIT_VEHICLE)) {
@@ -39,12 +46,12 @@ export const createVehicleInteractionSystem = (inputManager: InputManager) => {
 
       if (isDriver) {
         // === ВЫХОД ИЗ МАШИНЫ ===
-        exitVehicle(world, playerEid);
+        exitVehicle(world, playerEid, gameMap);
       } else {
         // === ПОИСК И ВХОД В МАШИНУ ===
         const nearestVehicle = findNearestVehicle(world, playerEid, ENTER_VEHICLE_DISTANCE);
         if (nearestVehicle !== 0) {
-          enterVehicle(world, playerEid, nearestVehicle);
+          enterVehicle(world, playerEid, nearestVehicle, gameMap);
         }
       }
     }
@@ -59,7 +66,7 @@ export const createVehicleInteractionSystem = (inputManager: InputManager) => {
 function findNearestVehicle(
   world: GameWorld,
   playerEid: number,
-  maxDistance: number
+  maxDistance: number,
 ): number {
   // Получаем все машины
   const vehicles = query(world, [Vehicle, Position]);
@@ -93,16 +100,42 @@ function findNearestVehicle(
 function enterVehicle(
   world: GameWorld,
   playerEid: number,
-  vehicleEid: number
+  vehicleEid: number,
+  gameMap: GameMap,
 ): void {
 
-  // Проверка: есть ли свободное место (уже проверили в findNearestVehicle, но на всякий случай)
+  // Проверка 1: есть ли свободное место (уже проверили в findNearestVehicle, но на всякий случай)
   if (VehicleOccupants.driver[vehicleEid] !== 0) {
+    eventBus.emit('vehicle:enterFailed', { player: playerEid, vehicle: vehicleEid, reason: 'occupied' });
     return;
   }
 
-  // Добавляем компонент Driver игроку
-  addComponent(world, playerEid, Driver);
+  // Проверка 2: машина все еще существует (может быть удалена)
+  if (!hasComponent(world, vehicleEid, Vehicle)) {
+    eventBus.emit('vehicle:enterFailed', { player: playerEid, vehicle: vehicleEid, reason: 'not_found' });
+    return;
+  }
+
+  // Проверка 3: игрок и машина на одном Z-уровне
+  const playerZ = Math.floor(Position.z[playerEid]);
+  const vehicleZ = Math.floor(Position.z[vehicleEid]);
+  if (playerZ !== vehicleZ) {
+    eventBus.emit('vehicle:enterFailed', { player: playerEid, vehicle: vehicleEid, reason: 'wrong_level' });
+    return;
+  }
+
+  // Проверка 4: позиция игрока не внутри стены (для безопасности)
+  const playerX = Position.x[playerEid];
+  const playerY = Position.y[playerEid];
+  if (!canMoveTo(gameMap, playerX, playerY, playerZ, PLAYER_COLLIDER_RADIUS)) {
+    eventBus.emit('vehicle:enterFailed', { player: playerEid, vehicle: vehicleEid, reason: 'invalid_position' });
+    return;
+  }
+
+  // Добавляем компонент Driver игроку (если его еще нет)
+  if (!hasComponent(world, playerEid, Driver)) {
+    addComponent(world, playerEid, Driver);
+  }
   Driver.vehicleEntity[playerEid] = vehicleEid;
 
   // Записываем водителя в машину
@@ -110,6 +143,10 @@ function enterVehicle(
 
   // Скрываем спрайт игрока
   SpriteComponent.visible[playerEid] = 0;
+
+  // Сбрасываем скорость машины перед входом
+  VehiclePhysics.throttle[vehicleEid] = 0;
+  VehiclePhysics.steering[vehicleEid] = 0;
 
   // Событие для других систем
   eventBus.emit('vehicle:entered', { player: playerEid, vehicle: vehicleEid });
@@ -119,37 +156,89 @@ function enterVehicle(
  * Выход из машины
  */
 function exitVehicle(
-  _world: GameWorld,
-  playerEid: number
+  world: GameWorld,
+  playerEid: number,
+  gameMap: GameMap,
 ): void {
   const vehicleEid = Driver.vehicleEntity[playerEid];
   if (!vehicleEid) {
     return;
   }
 
-  // Позиция выхода (сбоку от машины)
-  const angle = Rotation.angle[vehicleEid];
-  const exitX = Position.x[vehicleEid] + Math.cos(angle + Math.PI / 2) * EXIT_OFFSET;
-  const exitY = Position.y[vehicleEid] + Math.sin(angle + Math.PI / 2) * EXIT_OFFSET;
+  // Проверка 1: машина все еще существует
+  if (!hasComponent(world, vehicleEid, Vehicle)) {
+    // Машина уничтожена - все равно выходим, но игрок остается на месте
+    eventBus.emit('vehicle:exited', { player: playerEid, vehicle: vehicleEid, reason: 'vehicle_destroyed' });
+    removeDriverComponents(world, playerEid, vehicleEid);
+    SpriteComponent.visible[playerEid] = 1;
+    return;
+  }
 
-  // Позиция выхода
-  Position.x[playerEid] = exitX;
-  Position.y[playerEid] = exitY;
+  // Получаем позицию и угол машины
+  const vehicleX = Position.x[vehicleEid];
+  const vehicleY = Position.y[vehicleEid];
+  const vehicleAngle = Rotation.angle[vehicleEid];
+  const vehicleZ = Math.floor(Position.z[vehicleEid]);
 
   // Останавливаем машину
   VehiclePhysics.throttle[vehicleEid] = 0;
   VehiclePhysics.steering[vehicleEid] = 0;
   VehiclePhysics.speed[vehicleEid] = 0;
 
-  // Удаляем компонент Driver у игрока (устанавливаем vehicleEntity в 0)
-  Driver.vehicleEntity[playerEid] = 0;
+  // Пробуем разные позиции для выхода (справа, слева, спереди, сзади)
+  const exitOffsets = [
+    { angleOffset: Math.PI / 2, name: 'right' },      // Справа от машины
+    { angleOffset: -Math.PI / 2, name: 'left' },      // Слева от машины
+    { angleOffset: 0, name: 'front' },                // Спереди от машины
+    { angleOffset: Math.PI, name: 'back' },           // Сзади от машины
+  ];
 
-  // Очищаем место водителя в машине
-  VehicleOccupants.driver[vehicleEid] = 0;
+  let validExitFound = false;
+  let exitX = vehicleX;
+  let exitY = vehicleY;
 
-  // Показываем спрайт игрока
-  SpriteComponent.visible[playerEid] = 1;
+  for (const offset of exitOffsets) {
+    const candidateX = vehicleX + Math.cos(vehicleAngle + offset.angleOffset) * EXIT_OFFSET;
+    const candidateY = vehicleY + Math.sin(vehicleAngle + offset.angleOffset) * EXIT_OFFSET;
 
-  // Событие для других систем
-  eventBus.emit('vehicle:exited', { player: playerEid, vehicle: vehicleEid });
+    // Проверяем, что позиция валидна
+    if (canMoveTo(gameMap, candidateX, candidateY, vehicleZ, PLAYER_COLLIDER_RADIUS)) {
+      exitX = candidateX;
+      exitY = candidateY;
+      validExitFound = true;
+      break;
+    }
+  }
+
+  if (validExitFound) {
+    // Нашли валидную позицию - выходим
+    Position.x[playerEid] = exitX;
+    Position.y[playerEid] = exitY;
+    Position.z[playerEid] = vehicleZ;
+    removeDriverComponents(world, playerEid, vehicleEid);
+    SpriteComponent.visible[playerEid] = 1;
+    eventBus.emit('vehicle:exited', { player: playerEid, vehicle: vehicleEid });
+  } else {
+    // Все позиции заблокированы - показываем уведомление
+    eventBus.emit('vehicle:exitFailed', { player: playerEid, vehicle: vehicleEid, reason: 'blocked' });
+  }
+}
+
+/**
+ * Удаление компонентов Driver и очистка VehicleOccupants
+ * Вынесено в отдельную функцию для переиспользования
+ */
+function removeDriverComponents(world: GameWorld, playerEid: number, vehicleEid: number): void {
+  // Проверяем, что игрок все еще водитель этой машины
+  if (Driver.vehicleEntity[playerEid] === vehicleEid) {
+    // Удаляем компонент Driver у игрока
+    if (hasComponent(world, playerEid, Driver)) {
+      removeComponent(world, playerEid, Driver);
+    }
+
+    // Очищаем место водителя в машине
+    if (hasComponent(world, vehicleEid, VehicleOccupants)) {
+      VehicleOccupants.driver[vehicleEid] = 0;
+    }
+  }
 }

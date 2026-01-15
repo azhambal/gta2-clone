@@ -61,7 +61,7 @@ export class DistrictIndicator {
    * Скрыть уведомление
    */
   public hide(): void {
-    if (!this.visible) return;
+    if (!this.visible) {return;}
 
     this.element.style.opacity = '0';
     this.element.style.transform = 'translateY(-20px)';
@@ -77,7 +77,7 @@ export class DistrictIndicator {
    */
   private addStyles(): void {
     const styleId = 'district-indicator-styles';
-    if (document.getElementById(styleId)) return;
+    if (document.getElementById(styleId)) {return;}
 
     const style = document.createElement('style');
     style.id = styleId;

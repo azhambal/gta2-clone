@@ -10,7 +10,7 @@ export const createAnimationSystem = () => {
     const entities = query(world, [SpriteComponent, AnimationComponent]);
 
     for (const eid of entities) {
-      if (!AnimationComponent.playing[eid]) continue;
+      if (!AnimationComponent.playing[eid]) {continue;}
 
       // Обновление таймера
       AnimationComponent.timer[eid] += dt / 1000;

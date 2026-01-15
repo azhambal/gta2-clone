@@ -63,7 +63,7 @@ export class EntityRenderer {
       const height = SpriteComponent.height[eid];
       const visible = SpriteComponent.visible[eid] === 1;
 
-      if (!visible) continue;
+      if (!visible) {continue;}
 
       // Получаем или создаём sprite
       let sprite = this.spriteMap.get(eid);
@@ -77,7 +77,9 @@ export class EntityRenderer {
       sprite.x = x;
       sprite.y = y;
       sprite.rotation = rotation;
-      sprite.zIndex = y + z; // Z-order по позиции
+      // Z-order: Y position + Z level * 1000 (ensures higher Z always renders in front)
+      // This matches IsometricUtils.calculateDepth() formula
+      sprite.zIndex = y + z * 1000;
 
       // Определяем тип сущности для цвета
       const isPlayer = PlayerControlled[eid] === 1;

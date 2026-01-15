@@ -5,13 +5,15 @@ import type { PhysicsManager } from '../physics/PhysicsManager.js';
 import { EntityFactory } from '../ecs/EntityFactory.js';
 import { VehicleType } from '../data/VehicleDefinitions.js';
 import { BlockType } from '../world/BlockTypes.js';
-import { Position, VehicleOccupants, TrafficAI } from '../ecs/components/index.js';
+import { Position, VehicleOccupants, TrafficAI, Rotation } from '../ecs/components/index.js';
 import { type DistrictManager } from '../world/DistrictManager.js';
+import { TrafficNetwork } from '../ai/TrafficWaypoints.js';
 
 // Alias for Position for code clarity
 const Pos = Position;
 const VOcc = VehicleOccupants;
 const TAI = TrafficAI;
+const Rot = Rotation;
 
 /**
  * Конфигурация спавнера
@@ -43,6 +45,7 @@ export class SpawnManager {
   private world: GameWorld;
   private physicsManager: PhysicsManager;
   private districtManager: DistrictManager | null = null;
+  private trafficNetwork: TrafficNetwork | null = null;
 
   private spawnedPedestrians: Set<number> = new Set();
   private spawnedVehicles: Set<number> = new Set();
@@ -50,7 +53,13 @@ export class SpawnManager {
   private spawnTimer: number = 0;
   private spawnInterval: number = 500; // мс между попытками спавна
 
-  constructor(world: GameWorld, gameMap: GameMap, physicsManager: PhysicsManager, config: SpawnConfig, districtManager?: DistrictManager) {
+  constructor(
+    world: GameWorld,
+    gameMap: GameMap,
+    physicsManager: PhysicsManager,
+    config: SpawnConfig,
+    districtManager?: DistrictManager,
+  ) {
     this.world = world;
     this.gameMap = gameMap;
     this.physicsManager = physicsManager;
@@ -63,6 +72,13 @@ export class SpawnManager {
    */
   public setDistrictManager(districtManager: DistrictManager): void {
     this.districtManager = districtManager;
+  }
+
+  /**
+   * Установить сеть трафика (waypoints)
+   */
+  public setTrafficNetwork(trafficNetwork: TrafficNetwork): void {
+    this.trafficNetwork = trafficNetwork;
   }
 
   /**
@@ -120,7 +136,7 @@ export class SpawnManager {
       }
 
       // Не деспавнить если есть водитель
-      if (VOcc.driver[eid] !== 0) continue;
+      if (VOcc.driver[eid] !== 0) {continue;}
 
       const dx = Pos.x[eid] - playerX;
       const dy = Pos.y[eid] - playerY;
@@ -175,7 +191,7 @@ export class SpawnManager {
             pos.x,
             pos.y,
             vehicleType,
-            this.physicsManager
+            this.physicsManager,
           );
           this.spawnedVehicles.add(eid);
 
@@ -183,15 +199,33 @@ export class SpawnManager {
           addComponent(this.world, eid, TrafficAI);
           TAI.state[eid] = 0; // DRIVING
           TAI.previousState[eid] = 0;
-          TAI.desiredSpeed[eid] = 100 + Math.random() * 100;
-          TAI.aggressiveness[eid] = Math.random();
-          TAI.patience[eid] = 0.5 + Math.random() * 0.5;
-          TAI.distanceToNext[eid] = 999;
+          TAI.desiredSpeed[eid] = 100 + Math.random() * 50;
+          TAI.aggressiveness[eid] = 0.3 + Math.random() * 0.4;
+          TAI.patience[eid] = 3 + Math.random() * 3;
+          TAI.distanceToNext[eid] = 0;
           TAI.hasObstacle[eid] = 0;
           TAI.stateTimer[eid] = 0;
           TAI.waitTimer[eid] = 0;
-          TAI.currentWaypointId[eid] = 0;
-          TAI.routeId[eid] = 0;
+
+          // Находим ближайший waypoint для инициализации
+          if (this.trafficNetwork) {
+            const nearestWaypoint = this.trafficNetwork.getNearestWaypoint(pos.x, pos.y, 0);
+            if (nearestWaypoint) {
+              TAI.currentWaypointId[eid] = nearestWaypoint.id;
+              // Поворачиваем машину к следующему waypoint
+              const nextWaypoint = this.trafficNetwork.getNextWaypoint(nearestWaypoint.id);
+              if (nextWaypoint) {
+                const dx = nextWaypoint.x - pos.x;
+                const dy = nextWaypoint.y - pos.y;
+                Rot.angle[eid] = Math.atan2(dy, dx);
+              }
+            } else {
+              // Если нет waypoint nearby, не добавляем AI (машина будет стоять)
+              console.warn(`No waypoint found for traffic vehicle at (${pos.x}, ${pos.y})`);
+            }
+          } else {
+            console.warn('TrafficNetwork not set in SpawnManager');
+          }
         }
       }
     }
@@ -207,7 +241,7 @@ export class SpawnManager {
   private findSpawnPosition(
     playerX: number,
     playerY: number,
-    requiredBlockType: BlockType
+    requiredBlockType: BlockType,
   ): Vector2 | null {
     const minDist = this.config.spawnRadius * 0.6;
     const maxDist = this.config.spawnRadius;
@@ -225,7 +259,7 @@ export class SpawnManager {
       const block = this.gameMap.getBlock(
         blockPos.x,
         blockPos.y,
-        0
+        0,
       );
 
       if (block.getType() === requiredBlockType) {
@@ -247,18 +281,18 @@ export class SpawnManager {
 
     // Проверка пешеходов
     for (const eid of this.spawnedPedestrians) {
-      if (Pos.x[eid] === undefined) continue;
+      if (Pos.x[eid] === undefined) {continue;}
       const dx = Pos.x[eid] - x;
       const dy = Pos.y[eid] - y;
-      if (dx * dx + dy * dy < radiusSq) return true;
+      if (dx * dx + dy * dy < radiusSq) {return true;}
     }
 
     // Проверка машин
     for (const eid of this.spawnedVehicles) {
-      if (Pos.x[eid] === undefined) continue;
+      if (Pos.x[eid] === undefined) {continue;}
       const dx = Pos.x[eid] - x;
       const dy = Pos.y[eid] - y;
-      if (dx * dx + dy * dy < radiusSq) return true;
+      if (dx * dx + dy * dy < radiusSq) {return true;}
     }
 
     return false;

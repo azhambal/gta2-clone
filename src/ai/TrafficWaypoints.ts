@@ -40,7 +40,9 @@ export class TrafficNetwork {
   private nextId: number = 0;
   private roadBlocks: Set<string> = new Set();
 
-  constructor() {}
+  constructor() {
+    // Инициализация пустого конструктора
+  }
 
   /**
    * Add a waypoint to the network
@@ -95,7 +97,9 @@ export class TrafficNetwork {
    */
   public getNextWaypoint(currentId: number, previousId?: number): Waypoint | null {
     const current = this.waypoints.get(currentId);
-    if (!current || current.connections.length === 0) return null;
+    if (!current || current.connections.length === 0) {
+      return null;
+    }
 
     // If coming from somewhere, try not to go back (unless dead end)
     let availableConnections = current.connections;
@@ -122,7 +126,9 @@ export class TrafficNetwork {
 
     for (const wp of this.waypoints.values()) {
       // Check Z level first (allow small difference for slopes)
-      if (Math.abs(wp.z - z) > 1) continue;
+      if (Math.abs(wp.z - z) > 1) {
+        continue;
+      }
 
       const dist = Math.hypot(wp.x - x, wp.y - y);
       if (dist < minDist) {
@@ -138,7 +144,7 @@ export class TrafficNetwork {
    * Get random waypoint
    */
   public getRandomWaypoint(): Waypoint | null {
-    if (this.waypoints.size === 0) return null;
+    if (this.waypoints.size === 0) {return null;}
     const ids = Array.from(this.waypoints.keys());
     const randomId = ids[Math.floor(Math.random() * ids.length)];
     return this.waypoints.get(randomId) ?? null;
@@ -166,7 +172,7 @@ export class TrafficNetwork {
     const processed = new Set<string>();
 
     for (const blockKey of this.roadBlocks) {
-      if (processed.has(blockKey)) continue;
+      if (processed.has(blockKey)) {continue;}
 
       const [bx, by] = blockKey.split(',').map(Number);
       const neighbors = this.getRoadNeighborCount(bx, by);
@@ -179,7 +185,7 @@ export class TrafficNetwork {
 
     // Third pass: create waypoints along road segments
     for (const blockKey of this.roadBlocks) {
-      if (processed.has(blockKey)) continue;
+      if (processed.has(blockKey)) {continue;}
 
       const [bx, by] = blockKey.split(',').map(Number);
       this.createSegmentWaypoints(bx, by, z, gameMap, processed);
@@ -210,7 +216,7 @@ export class TrafficNetwork {
 
     for (const [dx, dy] of directions) {
       const key = `${bx + dx},${by + dy}`;
-      if (this.roadBlocks.has(key)) count++;
+      if (this.roadBlocks.has(key)) {count++;}
     }
 
     return count;
@@ -224,7 +230,7 @@ export class TrafficNetwork {
     by: number,
     z: number,
     _gameMap: GameMap,
-    processed: Set<string>
+    processed: Set<string>,
   ): void {
     const x = bx * BLOCK_SIZE + BLOCK_SIZE / 2;
     const y = by * BLOCK_SIZE + BLOCK_SIZE / 2;
@@ -255,7 +261,7 @@ export class TrafficNetwork {
     by: number,
     z: number,
     _gameMap: GameMap,
-    processed: Set<string>
+    processed: Set<string>,
   ): void {
     // Find road segment direction (reserved for future use - lane determination)
     // const hasNorth = this.roadBlocks.has(`${bx},${by - 1}`);
@@ -290,13 +296,13 @@ export class TrafficNetwork {
 
     for (const wp1 of this.waypoints.values()) {
       for (const wp2 of this.waypoints.values()) {
-        if (wp1.id === wp2.id) continue;
+        if (wp1.id === wp2.id) {continue;}
 
         // Check if already connected
-        if (wp1.connections.includes(wp2.id)) continue;
+        if (wp1.connections.includes(wp2.id)) {continue;}
 
         // Only connect waypoints on same Z level
-        if (wp1.z !== wp2.z) continue;
+        if (wp1.z !== wp2.z) {continue;}
 
         // Check spatial proximity
         const dist = Math.hypot(wp1.x - wp2.x, wp1.y - wp2.y);

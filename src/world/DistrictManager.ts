@@ -118,7 +118,7 @@ export function createRectDistrictConfig(
   y: number,
   width: number,
   height: number,
-  overrides: Partial<DistrictConfig> = {}
+  overrides: Partial<DistrictConfig> = {},
 ): DistrictConfig {
   return {
     id,

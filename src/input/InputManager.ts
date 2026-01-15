@@ -1,7 +1,6 @@
-import { GameAction } from './Actions.js';
+import { GameAction, type KeyBinding } from './Actions.js';
 import { ActionMapper } from './ActionMapper.js';
 import type { Vector2 } from '../core/Types.js';
-import type { KeyBinding } from './Actions.js';
 
 /**
  * Расширенный менеджер ввода
@@ -92,7 +91,14 @@ export class InputManager {
   }
 
   private isGameKey(key: string): boolean {
-    return ['w', 'a', 's', 'd', ' ', 'e', 'r', 'shift', 'control', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'escape', 'p', 'q'].includes(key);
+    return [
+      'w', 'a', 's', 'd', ' ', 'e', 'r', 'shift', 'control',
+      'arrowup', 'arrowdown', 'arrowleft', 'arrowright',
+      'escape', 'p', 'q', 'h',  // 'h' for help/debug info
+      'f1', 'f2', 'f3', 'f4', 'f5', 'f9', 'f10', 'f11', 'f12',
+      ',', '.',  // Frame by frame
+      '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',  // Mode switching
+    ].includes(key);
   }
 
   // === Проверка действий ===
@@ -104,13 +110,13 @@ export class InputManager {
     // Клавиатура
     const keys = this.actionMapper.getKeysForAction(action);
     for (const key of keys) {
-      if (this.keysDown.has(key)) return true;
+      if (this.keysDown.has(key)) {return true;}
     }
 
     // Мышь
     const buttons = this.actionMapper.getMouseButtonsForAction(action);
     for (const button of buttons) {
-      if (this.mouseButtons.has(button)) return true;
+      if (this.mouseButtons.has(button)) {return true;}
     }
 
     return false;
@@ -122,12 +128,12 @@ export class InputManager {
   public isActionJustPressed(action: GameAction): boolean {
     const keys = this.actionMapper.getKeysForAction(action);
     for (const key of keys) {
-      if (this.keysJustPressed.has(key)) return true;
+      if (this.keysJustPressed.has(key)) {return true;}
     }
 
     const buttons = this.actionMapper.getMouseButtonsForAction(action);
     for (const button of buttons) {
-      if (this.mouseButtonsJustPressed.has(button)) return true;
+      if (this.mouseButtonsJustPressed.has(button)) {return true;}
     }
 
     return false;
@@ -139,15 +145,29 @@ export class InputManager {
   public isActionJustReleased(action: GameAction): boolean {
     const keys = this.actionMapper.getKeysForAction(action);
     for (const key of keys) {
-      if (this.keysJustReleased.has(key)) return true;
+      if (this.keysJustReleased.has(key)) {return true;}
     }
 
     const buttons = this.actionMapper.getMouseButtonsForAction(action);
     for (const button of buttons) {
-      if (this.mouseButtonsJustReleased.has(button)) return true;
+      if (this.mouseButtonsJustReleased.has(button)) {return true;}
     }
 
     return false;
+  }
+
+  /**
+   * Проверка нажатия конкретной клавиши (один кадр)
+   */
+  public isKeyJustPressed(key: string): boolean {
+    return this.keysJustPressed.has(key.toLowerCase());
+  }
+
+  /**
+   * Проверка удержания конкретной клавиши
+   */
+  public isKeyDown(key: string): boolean {
+    return this.keysDown.has(key.toLowerCase());
   }
 
   // === Утилиты ===
@@ -159,10 +179,10 @@ export class InputManager {
     let x = 0;
     let y = 0;
 
-    if (this.isActionDown(GameAction.MOVE_UP)) y -= 1;
-    if (this.isActionDown(GameAction.MOVE_DOWN)) y += 1;
-    if (this.isActionDown(GameAction.MOVE_LEFT)) x -= 1;
-    if (this.isActionDown(GameAction.MOVE_RIGHT)) x += 1;
+    if (this.isActionDown(GameAction.MOVE_UP)) {y -= 1;}
+    if (this.isActionDown(GameAction.MOVE_DOWN)) {y += 1;}
+    if (this.isActionDown(GameAction.MOVE_LEFT)) {x -= 1;}
+    if (this.isActionDown(GameAction.MOVE_RIGHT)) {x += 1;}
 
     // Нормализация диагонального движения
     if (x !== 0 && y !== 0) {
@@ -181,10 +201,10 @@ export class InputManager {
     let throttle = 0;
     let steer = 0;
 
-    if (this.isActionDown(GameAction.ACCELERATE)) throttle = 1;
-    if (this.isActionDown(GameAction.BRAKE)) throttle = -1;
-    if (this.isActionDown(GameAction.STEER_LEFT)) steer = -1;
-    if (this.isActionDown(GameAction.STEER_RIGHT)) steer = 1;
+    if (this.isActionDown(GameAction.ACCELERATE)) {throttle = 1;}
+    if (this.isActionDown(GameAction.BRAKE)) {throttle = -1;}
+    if (this.isActionDown(GameAction.STEER_LEFT)) {steer = -1;}
+    if (this.isActionDown(GameAction.STEER_RIGHT)) {steer = 1;}
 
     return {
       throttle,

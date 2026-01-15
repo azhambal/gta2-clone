@@ -68,7 +68,7 @@ export class ActionMapper {
     for (const binding of bindings) {
       if (binding.device === InputDevice.KEYBOARD) {
         keys.push(binding.key);
-        if (binding.alt) keys.push(binding.alt);
+        if (binding.alt) {keys.push(binding.alt);}
       }
     }
 

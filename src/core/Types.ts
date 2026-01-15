@@ -60,5 +60,5 @@ export const GAME_CONSTANTS = {
   BLOCK_SIZE: 64,           // Размер блока в пикселях
   CHUNK_SIZE: 16,           // Размер чанка в блоках
   MAP_DEPTH: 8,             // Количество уровней Z
-  FIXED_TIMESTEP: 1000 / 60 // Фиксированный шаг времени (мс)
+  FIXED_TIMESTEP: 1000 / 60, // Фиксированный шаг времени (мс)
 } as const;
