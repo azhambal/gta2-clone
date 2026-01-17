@@ -1,6 +1,6 @@
 import { query } from 'bitecs';
 import type { GameWorld } from '../World.js';
-import { Graphics } from 'pixi.js';
+import { Graphics, Container } from 'pixi.js';
 import {
   Position,
   Rotation,

@@ -13,7 +13,7 @@ const Pos = Position;
 /**
  * Максимальное расстояние для входа в машину (в пикселях)
  */
-const ENTER_VEHICLE_DISTANCE = 80;
+const ENTER_VEHICLE_DISTANCE = 120;
 
 /**
  * Смещение позиции игрока при выходе из машины
@@ -31,18 +31,31 @@ const PLAYER_COLLIDER_RADIUS = 12;
  * Обрабатывает вход и выход игрока из машин по нажатию E
  */
 export const createVehicleInteractionSystem = (inputManager: InputManager, gameMap: GameMap) => {
+  // Флаг для предотвращения повторной обработки в том же кадре
+  // (fixedUpdate может вызываться несколько раз за кадр)
+  let lastProcessedTime = 0;
+  const DEBOUNCE_MS = 200; // Минимальный интервал между входом/выходом
+
   return (world: GameWorld, _dt: number) => {
     // Проверяем нажатие клавиши входа/выхода
     if (!inputManager.isActionJustPressed(GameAction.ENTER_EXIT_VEHICLE)) {
       return world;
     }
 
+    // Защита от повторных срабатываний
+    const now = performance.now();
+    if (now - lastProcessedTime < DEBOUNCE_MS) {
+      return world;
+    }
+    lastProcessedTime = now;
+
     // Находим всех игроков, управляемых игроком
     const players = query(world, [PlayerControlled, Position]);
 
     for (const playerEid of players) {
       // Проверяем, в машине ли игрок
-      const isDriver = Driver.vehicleEntity[playerEid] !== 0;
+      // Используем hasComponent для точной проверки наличия компонента Driver
+      const isDriver = hasComponent(world, playerEid, Driver) && Driver.vehicleEntity[playerEid] !== 0;
 
       if (isDriver) {
         // === ВЫХОД ИЗ МАШИНЫ ===
@@ -71,19 +84,27 @@ function findNearestVehicle(
   // Получаем все машины
   const vehicles = query(world, [Vehicle, Position]);
 
+  const playerX = Pos.x[playerEid];
+  const playerY = Pos.y[playerEid];
+
   let nearest = 0;
   let nearestDist = maxDistance;
 
   for (const vehicleEid of vehicles) {
-    // Проверяем, что есть свободное место для водителя
-    if (VehicleOccupants.driver[vehicleEid] !== 0) {
-      continue; // Место занято
-    }
-
-    // Вычисляем расстояние
-    const dx = Pos.x[vehicleEid] - Pos.x[playerEid];
-    const dy = Pos.y[vehicleEid] - Pos.y[playerEid];
+    const vx = Pos.x[vehicleEid];
+    const vy = Pos.y[vehicleEid];
+    const dx = vx - playerX;
+    const dy = vy - playerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Проверяем, что машина имеет компонент VehicleOccupants и место водителя свободно
+    const hasOccupants = hasComponent(world, vehicleEid, VehicleOccupants);
+    const driverSeat = hasOccupants ? VehicleOccupants.driver[vehicleEid] : -1;
+    const isOccupied = driverSeat !== 0;
+
+    if (isOccupied) {
+      continue; // Место занято или нет компонента
+    }
 
     if (dist < nearestDist) {
       nearest = vehicleEid;

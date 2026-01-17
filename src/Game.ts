@@ -448,9 +448,6 @@ export class Game {
     if (this.debugOverlay) {
       this.debugOverlay.update(_dt);
     }
-
-    // Очистка состояния ввода
-    this.inputManager.update();
   }
 
   /**
@@ -491,6 +488,9 @@ export class Game {
     this.renderer.beginFrame();
     // Рендеринг объектов будет здесь
     this.renderer.endFrame();
+
+    // Очистка состояния ввода (в конце кадра, после всех систем)
+    this.inputManager.update();
   }
 
   /**
